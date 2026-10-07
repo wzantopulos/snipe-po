@@ -13,6 +13,7 @@ import (
 var (
 	cfgFile string
 	verbose bool
+	rootCfg *config.Config
 )
 
 var rootCmd = &cobra.Command{
@@ -20,7 +21,9 @@ var rootCmd = &cobra.Command{
 	Short: "Purchase order system for Snipe-IT",
 	Long:  `snipe-po is a CLI tool for creating purchase orders from Snipe-IT assets with PDF generation and email workflow.`,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		if err := config.Load(); err != nil {
+		var err error
+		rootCfg, err = config.Load()
+		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 		if err := db.Init(); err != nil {

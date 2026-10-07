@@ -29,41 +29,42 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	headerY := pdf.GetY()
 
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(95, 5, "FROM:", 0, 0, "")
-	pdf.Cell(95, 5, "TO:", 0, 1, "")
+	pdf.Cell(95, 5, "FROM:")
+	pdf.Cell(95, 5, "TO:")
 	pdf.SetY(headerY)
 
 	pdf.SetFont("Arial", "", 9)
-	pdf.Cell(95, 4, cfg.Company.Name, 0, 0, "")
-	pdf.Cell(95, 4, po.Supplier, 0, 1, "")
-	pdf.Cell(95, 4, cfg.Company.Address, 0, 0, "")
-	pdf.Cell(95, 4, po.SupplierContact, 0, 1, "")
-	pdf.Cell(95, 4, cfg.Company.CityStateZip, 0, 0, "")
-	pdf.Cell(95, 4, "", 0, 1, "")
-	pdf.Cell(95, 4, cfg.Company.Phone, 0, 0, "")
-	pdf.Cell(95, 4, "", 0, 1, "")
-	pdf.Cell(95, 4, cfg.Company.Email, 0, 1, "")
-
+	pdf.Cell(95, 4, cfg.Company.Name)
+	pdf.Cell(95, 4, po.Supplier)
+	pdf.Ln(4)
+	pdf.Cell(95, 4, cfg.Company.Address)
+	pdf.Cell(95, 4, po.SupplierContact)
+	pdf.Ln(4)
+	pdf.Cell(95, 4, cfg.Company.CityStateZip)
+	pdf.Ln(4)
+	pdf.Cell(95, 4, cfg.Company.Phone)
+	pdf.Ln(4)
+	pdf.Cell(95, 4, cfg.Company.Email)
 	pdf.Ln(8)
 
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(25, 6, "PO Number:", 0, 0, "")
+	pdf.Cell(25, 6, "PO Number:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(50, 6, po.PONumber, 0, 0, "")
+	pdf.Cell(50, 6, po.PONumber)
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(25, 6, "Date:", 0, 0, "")
+	pdf.Cell(25, 6, "Date:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(40, 6, po.Date, 0, 1, "")
+	pdf.Cell(40, 6, po.Date)
+	pdf.Ln(6)
 
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(25, 6, "Department:", 0, 0, "")
+	pdf.Cell(25, 6, "Department:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(50, 6, po.Department, 0, 0, "")
+	pdf.Cell(50, 6, po.Department)
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(25, 6, "GL Code:", 0, 0, "")
+	pdf.Cell(25, 6, "GL Code:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(40, 6, po.GLCode, 0, 1, "")
-
+	pdf.Cell(40, 6, po.GLCode)
 	pdf.Ln(10)
 
 	headers := []string{"Qty", "Description", "Model", "MAC/Serial", "Unit Price", "Total"}
@@ -77,6 +78,7 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.Ln(-1)
 
 	pdf.SetFont("Arial", "", 8)
+	pdf.SetFillColor(255, 255, 255)
 	for _, item := range items {
 		description := item.Description
 		if len(description) > 40 {
@@ -108,58 +110,63 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 
 	totalsX := 140.0
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(totalsX-140, 6, "", 0, 0, "")
+	pdf.Cell(totalsX-140, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Subtotal:", 0, 0, "R")
+	pdf.Cell(35, 6, "Subtotal:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.Subtotal), 0, 1, "R")
+	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.Subtotal))
+	pdf.Ln(6)
 
-	pdf.Cell(totalsX-140, 6, "", 0, 0, "")
+	pdf.Cell(totalsX-140, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Shipping:", 0, 0, "R")
+	pdf.Cell(35, 6, "Shipping:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.ShippingCost), 0, 1, "R")
+	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.ShippingCost))
+	pdf.Ln(6)
 
-	pdf.Cell(totalsX-140, 6, "", 0, 0, "")
+	pdf.Cell(totalsX-140, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Tax:", 0, 0, "R")
+	pdf.Cell(35, 6, "Tax:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.TaxCost), 0, 1, "R")
+	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.TaxCost))
+	pdf.Ln(6)
 
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(240, 240, 240)
-	pdf.Cell(totalsX-140, 8, "", 0, 0, "")
-	pdf.Cell(35, 8, "Grand Total:", 0, 0, "R")
-	pdf.SetFont("Arial", "B", 11)
-	pdf.Cell(25, 8, fmt.Sprintf("$%.2f", po.GrandTotal), "1", 1, "R", true, 0, "")
+	pdf.Cell(totalsX-140, 8, "")
+	pdf.Cell(35, 8, "Grand Total:")
+	pdf.Cell(25, 8, fmt.Sprintf("$%.2f", po.GrandTotal))
+	pdf.Ln(8)
 
 	pdf.Ln(10)
 
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(190, 6, "Payment Information", 0, 1, "")
+	pdf.Cell(190, 6, "Payment Information")
+	pdf.Ln(6)
 	pdf.SetFont("Arial", "", 9)
-	pdf.Cell(30, 5, "Terms:", 0, 0, "")
-	pdf.Cell(50, 5, po.Terms, 0, 0, "")
-	pdf.Cell(35, 5, "Payment Type:", 0, 0, "")
-	pdf.Cell(75, 5, po.PaymentType, 0, 1, "")
-
+	pdf.Cell(30, 5, "Terms:")
+	pdf.Cell(50, 5, po.Terms)
+	pdf.Cell(35, 5, "Payment Type:")
+	pdf.Cell(75, 5, po.PaymentType)
 	pdf.Ln(15)
 
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(95, 6, "Approved By:", 0, 1, "")
-	pdf.Cell(95, 6, "", "B", 1, "")
+	pdf.Cell(95, 6, "Approved By:")
+	pdf.Ln(6)
+	pdf.Cell(95, 6, "")
+	pdf.Ln(6)
 	pdf.SetFont("Arial", "", 8)
-	pdf.Cell(95, 4, "Signature", 0, 0, "")
-	pdf.Cell(95, 4, "Date", 0, 1, "")
+	pdf.Cell(95, 4, "Signature")
+	pdf.Cell(95, 4, "Date")
 
 	pdf.SetY(-30)
 	pdf.SetFont("Arial", "I", 8)
-	pdf.Cell(0, 10, fmt.Sprintf("Generated on %s", time.Now().Format("01/02/2006 at 3:04 PM")), 0, 1, "C")
+	pdf.Cell(0, 10, fmt.Sprintf("Generated on %s", time.Now().Format("01/02/2006 at 3:04 PM")))
 
 	exePath, err := os.Executable()
-	pdfDir := filepath.Join(exePath, "..", "pdfs")
-	if err != nil {
-		pdfDir = "pdfs"
+	pdfDir := "pdfs"
+	if err == nil {
+		pdfDir = filepath.Join(filepath.Dir(exePath), "pdfs")
 	}
 	os.MkdirAll(pdfDir, 0755)
 

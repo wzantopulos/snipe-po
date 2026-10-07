@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/mattn/go-sqlite3"
 )
 
 var (

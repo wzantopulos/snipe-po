@@ -3,6 +3,7 @@ package email
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/smtp"
 	"os"
 	"strings"
@@ -35,37 +36,33 @@ func SendEmail(to []string, subject, body, attachmentPath string) error {
 
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
 	if err != nil {
-		conn, err = smtp.Dial(addr)
-		if err != nil {
-			return fmt.Errorf("failed to connect to SMTP server: %w", err)
-		}
-		defer conn.Close()
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
 	}
 	defer conn.Close()
 
-	if err := conn.StartTLS(tlsConfig); err != nil {
-		if !strings.Contains(err.Error(), "handshake") && !strings.Contains(err.Error(), "first record") {
-			return fmt.Errorf("STARTTLS failed: %w", err)
-		}
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP client: %w", err)
 	}
+	defer client.Close()
 
 	if auth != nil {
-		if err := conn.Auth(auth); err != nil {
+		if err := client.Auth(auth); err != nil {
 			return fmt.Errorf("SMTP auth failed: %w", err)
 		}
 	}
 
-	if err := conn.Mail(from); err != nil {
+	if err := client.Mail(from); err != nil {
 		return fmt.Errorf("SMTP MAIL FROM failed: %w", err)
 	}
 
 	for _, recipient := range to {
-		if err := conn.Rcpt(recipient); err != nil {
+		if err := client.Rcpt(recipient); err != nil {
 			return fmt.Errorf("SMTP RCPT TO failed: %w", err)
 		}
 	}
 
-	w, err := conn.Data()
+	w, err := client.Data()
 	if err != nil {
 		return fmt.Errorf("SMTP DATA failed: %w", err)
 	}
@@ -105,7 +102,7 @@ func buildMessage(from string, to []string, subject, body, attachmentPath string
 			sb.WriteString(fmt.Sprintf("Content-Type: application/pdf; name=\"%s\"\r\n", filename))
 			sb.WriteString("Content-Transfer-Encoding: base64\r\n")
 			sb.WriteString(fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n\r\n", filename))
-			sb.WriteString encodeBase64(pdfData)
+			sb.WriteString(encodeBase64(pdfData))
 			sb.WriteString("\r\n--boundary--\r\n")
 		}
 	}
@@ -153,4 +150,15 @@ func encodeBase64(data []byte) string {
 	}
 
 	return sb.String()
+}
+
+func startTLS(client *smtp.Client, host string) error {
+	err := client.StartTLS(&tls.Config{
+		ServerName: host,
+	})
+	return err
+}
+
+func dial(addr string) (net.Conn, error) {
+	return net.Dial("tcp", addr)
 }
