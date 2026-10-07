@@ -15,17 +15,13 @@ permissions:
   packages: write
 
 jobs:
-  release:
+  docker:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref }}
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -37,25 +33,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=latest
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.event.inputs.tag || github.ref_name }}
+            ghcr.io/${{ github.repository }}:latest
           build-args: |
             VERSION=${{ github.event.inputs.tag || github.ref_name }}
+
+  binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
 
       - name: Build binaries
         run: |
