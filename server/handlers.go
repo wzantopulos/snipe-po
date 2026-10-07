@@ -82,8 +82,7 @@ func createPO(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cfg := config.Get()
-	poNumber, err := db.GetNextPONumber(cfg.PO.NumberPrefix)
+	poNumber, err := db.GetNextPONumber()
 	if err != nil {
 		errorResponse(w, "Failed to generate PO number", http.StatusInternalServerError)
 		return
@@ -100,6 +99,7 @@ func createPO(w http.ResponseWriter, r *http.Request) {
 		date = time.Now().Format("01/02/2006")
 	}
 
+	cfg := config.Get()
 	terms := req.Terms
 	if terms == "" {
 		terms = cfg.PO.DefaultTerms

@@ -163,7 +163,7 @@ func runCreate(cmd *cobra.Command, args []string) error {
 
 	grandTotal := subtotal + createFlags.Shipping + createFlags.Tax
 
-	poNumber, err := db.GetNextPONumber(cfg.PO.NumberPrefix)
+	poNumber, err := db.GetNextPONumber()
 	if err != nil {
 		return fmt.Errorf("failed to generate PO number: %w", err)
 	}

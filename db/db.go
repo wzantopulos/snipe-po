@@ -126,6 +126,11 @@ func initDB() error {
 		details TEXT DEFAULT '',
 		FOREIGN KEY (po_id) REFERENCES purchase_orders(id)
 	);
+
+	CREATE TABLE IF NOT EXISTS po_sequence (
+		date_key TEXT PRIMARY KEY,
+		last_sequence INTEGER NOT NULL DEFAULT 0
+	);
 	`
 
 	_, err = db.Exec(schema)
@@ -281,12 +286,27 @@ func GetHistory(poID string) ([]struct {
 	return history, nil
 }
 
-func GetNextPONumber(prefix string) (string, error) {
-	var nextNum int
-	err := db.QueryRow(`SELECT COALESCE(MAX(CAST(SUBSTR(po_number, 5, 4) AS INTEGER)), 0) FROM purchase_orders WHERE po_number LIKE ?`, prefix+"-%").Scan(&nextNum)
+// GetNextPONumber generates PO number in format IT-YYYYMMDD-### (e.g. IT-20261007-001)
+// Sequence is per-day and stored in the po_sequence table.
+func GetNextPONumber() (string, error) {
+	now := time.Now()
+	dateKey := now.Format("20060102")
+
+	// Upsert: insert new date_key with sequence=1, or increment existing
+	_, err := db.Exec(`
+		INSERT INTO po_sequence (date_key, last_sequence) VALUES (?, 1)
+		ON CONFLICT(date_key) DO UPDATE SET last_sequence = last_sequence + 1`,
+		dateKey)
 	if err != nil {
-		nextNum = 0
+		return "", fmt.Errorf("failed to increment sequence: %w", err)
 	}
-	nextNum++
-	return fmt.Sprintf("%s-%d", prefix, nextNum), nil
+
+	// Read the current sequence value
+	var seq int
+	err = db.QueryRow(`SELECT last_sequence FROM po_sequence WHERE date_key = ?`, dateKey).Scan(&seq)
+	if err != nil {
+		return "", fmt.Errorf("failed to read sequence: %w", err)
+	}
+
+	return fmt.Sprintf("IT-%s-%03d", dateKey, seq), nil
 }
