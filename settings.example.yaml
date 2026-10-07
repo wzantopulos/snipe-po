@@ -1,0 +1,23 @@
+company:
+  name: "Your Company Name"
+  address: "123 Main St"
+  city_state_zip: "City, ST 12345"
+  phone: "555-555-5555"
+  email: "po@yourcompany.com"
+
+snipe_it:
+  url: "https://snipe.yourcompany.com"
+  api_key: ""
+
+smtp:
+  host: "smtp.yourcompany.com"
+  port: 587
+  username: ""
+  password: ""
+  from: "po@yourcompany.com"
+
+po:
+  next_number: 1
+  number_prefix: "PO"
+  default_terms: "Net 30"
+  default_payment_type: "ACH"
