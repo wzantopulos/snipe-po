@@ -332,14 +332,20 @@ func getPDF(w http.ResponseWriter, r *http.Request) {
 // GET /api/suppliers - Fetch manufacturers from Snipe-IT
 func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
-	if cfg.SnipeIT.URL == "" || cfg.SnipeIT.APIKey == "" {
+	if cfg.SnipeIT.APIKey == "" {
 		jsonResponse(w, []map[string]string{}, http.StatusOK)
 		return
 	}
 
-	url := strings.TrimRight(cfg.SnipeIT.URL, "/") + "/api/v1/manufacturers"
+	// Use internal docker network URL for Snipe-IT API calls
+	// The public SNIPE_PO_SNIPEIT_URL may be set to an external URL, but from
+	// inside the Docker network we must use the internal container URL
+	snipeURL := "http://app:80"
+	url := snipeURL + "/api/v1/manufacturers"
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		fmt.Printf("suppliers: failed to create request: %v\n", err)
 		errorResponse(w, "Failed to create request", http.StatusInternalServerError)
 		return
 	}
@@ -349,18 +355,21 @@ func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Printf("suppliers: failed to fetch from Snipe-IT: %v\n", err)
 		jsonResponse(w, []map[string]string{}, http.StatusOK)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("suppliers: Snipe-IT returned status %d\n", resp.StatusCode)
 		jsonResponse(w, []map[string]string{}, http.StatusOK)
 		return
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Printf("suppliers: failed to read response: %v\n", err)
 		jsonResponse(w, []map[string]string{}, http.StatusOK)
 		return
 	}
@@ -372,6 +381,7 @@ func listSuppliers(w http.ResponseWriter, r *http.Request) {
 		} `json:"rows"`
 	}
 	if err := json.Unmarshal(body, &result); err != nil {
+		fmt.Printf("suppliers: failed to parse response: %v\n", err)
 		jsonResponse(w, []map[string]string{}, http.StatusOK)
 		return
 	}
@@ -380,6 +390,7 @@ func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	for _, m := range result.Rows {
 		suppliers = append(suppliers, map[string]string{"id": fmt.Sprintf("%d", m.ID), "name": m.Name})
 	}
+	fmt.Printf("suppliers: returning %d manufacturers\n", len(suppliers))
 	jsonResponse(w, suppliers, http.StatusOK)
 }
 
@@ -406,13 +417,20 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
+	// Use the configured Snipe-IT URL as the API URL
 	snipeURL := ""
 	if cfg != nil {
 		snipeURL = strings.TrimRight(cfg.SnipeIT.URL, "/")
 	}
+	// Derive web UI URL by stripping /api/v1 suffix if present
+	webURL := snipeURL
+	if strings.HasSuffix(webURL, "/api/v1") {
+		webURL = strings.TrimSuffix(webURL, "/api/v1")
+	}
 	data := map[string]interface{}{
-		"Today":       time.Now().Format("2006-01-02"),
-		"SnipeITURL": snipeURL,
+		"Today":         time.Now().Format("2006-01-02"),
+		"SnipeITURL":    snipeURL,
+		"SnipeITWebURL": webURL,
 	}
 	tmpl := template.Must(template.New("create").Parse(createTemplate))
 	if err := tmpl.Execute(w, data); err != nil {

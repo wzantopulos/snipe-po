@@ -344,7 +344,7 @@ var createTemplate = `<!DOCTYPE html>
                             <hr>
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">Line Items</h5>
-                                <a href="{{.SnipeITURL}}/hardware/create" target="_blank" class="snipe-link">
+                                <a href="{{.SnipeITWebURL}}/hardware/create" target="_blank" class="snipe-link">
                                     Create in Snipe-IT &#8594;
                                 </a>
                             </div>
@@ -352,7 +352,6 @@ var createTemplate = `<!DOCTYPE html>
                                 <div class="line-item-row" data-index="0">
                                     <input type="text" name="items[0].description" placeholder="Description" required>
                                     <input type="text" name="items[0].model" placeholder="Model">
-                                    <input type="text" name="items[0].serial" placeholder="Serial">
                                     <input type="number" name="items[0].quantity" placeholder="Qty" min="1" value="1">
                                     <input type="number" name="items[0].unit_price" placeholder="Unit Price" step="0.01" min="0">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-item" onclick="removeLineItem(this)">X</button>
@@ -479,7 +478,6 @@ var createTemplate = `<!DOCTYPE html>
             div.setAttribute("data-index", itemIndex);
             div.innerHTML = "<input type=\"text\" name=\"items[" + itemIndex + "].description\" placeholder=\"Description\" required>" +
                 "<input type=\"text\" name=\"items[" + itemIndex + "].model\" placeholder=\"Model\">" +
-                "<input type=\"text\" name=\"items[" + itemIndex + "].serial\" placeholder=\"Serial\">" +
                 "<input type=\"number\" name=\"items[" + itemIndex + "].quantity\" placeholder=\"Qty\" min=\"1\" value=\"1\">" +
                 "<input type=\"number\" name=\"items[" + itemIndex + "].unit_price\" placeholder=\"Unit Price\" step=\"0.01\" min=\"0\">" +
                 "<button type=\"button\" class=\"btn btn-outline-danger btn-sm remove-item\" onclick=\"removeLineItem(this)\">X</button>";
