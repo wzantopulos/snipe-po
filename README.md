@@ -4,6 +4,12 @@ A CLI purchase order system for Snipe-IT that creates POs from assets with PDF g
 
 ## Installation
 
+### Binary Release
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/wzantopulos/snipe-po/releases).
+
+### Build from Source
+
 ```bash
 # Clone the repository
 git clone git@github.com:wzantopulos/snipe-po.git
@@ -14,6 +20,20 @@ go mod tidy
 
 # Build
 GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags="-s -w" -o snipe-po .
+```
+
+### Docker
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/wzantopulos/snipe-po:latest
+
+# Run with persistent data
+docker run -d \
+  --name snipe-po \
+  -p 8080:8080 \
+  -v snipe-po-data:/app/data \
+  ghcr.io/wzantopulos/snipe-po:latest
 ```
 
 ## Configuration
@@ -49,6 +69,36 @@ po:
 ```
 
 ## Commands
+
+### snipe-po serve
+
+Start the web UI server for managing purchase orders.
+
+```bash
+# Start server on default port 8080
+snipe-po serve
+
+# Start server on custom port
+snipe-po serve --port 9000
+```
+
+The web UI provides:
+- **Dashboard**: View and filter all purchase orders
+- **Create PO**: Form to create new purchase orders with line items
+- **View PO**: View PO details, approve/reject, download PDF
+
+**REST API endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/pos` | List all POs (optional `?status=` filter) |
+| GET | `/api/pos/:id` | Get single PO |
+| POST | `/api/pos` | Create new PO |
+| POST | `/api/pos/:id/send` | Send PO for approval |
+| POST | `/api/pos/:id/approve` | Approve PO |
+| POST | `/api/pos/:id/reject` | Reject PO |
+| POST | `/api/pos/:id/send-to-ap` | Send approved PO to AP |
+| POST | `/api/pos/:id/mark-paid` | Mark PO as paid |
+| GET | `/api/pos/:id/pdf` | Download PO PDF |
 
 ### snipe-po create
 
@@ -162,6 +212,103 @@ snipe-po version
 | `sent_to_ap` | Forwarded to Accounts Payable |
 | `paid` | Payment completed |
 | `rejected` | Rejected by approver |
+
+## Web UI Screenshots
+
+### Dashboard
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 📋 snipe-po                          Dashboard    + New PO       │
+├─────────────────────────────────────────────────────────────────┤
+│ Purchase Orders                          [Filter by Status ▼]    │
+├─────────────────────────────────────────────────────────────────┤
+│ PO #     │ Date    │ Supplier   │ Dept │ Status           │ $ │
+├─────────────────────────────────────────────────────────────────┤
+│ PO-1     │ 10/01   │ Acme Corp  │ IT   │ [pending_approval] │2500.00│
+│ PO-2     │ 09/28   │ TechSupply │ Ops  │ [approved]        │1200.00│
+│ PO-3     │ 09/25   │ Office Co  │ Admin│ [draft]           │ 450.00│
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Create PO
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 📋 snipe-po                          Dashboard    + New PO       │
+├─────────────────────────────────────────────────────────────────┤
+│ ┌─── Create Purchase Order ────────────────────────────────┐    │
+│ │ Supplier *    [Acme Corp        ]  Date *   [2026-10-07]│    │
+│ │ Department     [IT               ]  GL Code  [5200      ]│    │
+│ │                                                                 │
+│ │ Payment Terms [Net 30 ▼]      Payment Type [ACH ▼]          │    │
+│ │                                                                 │
+│ │ ── Line Items ────────────────────────────────────────────  │    │
+│ │ Description      Model      Serial    Qty  Unit Price  [X] │    │
+│ │ MacBook Pro      14" M3     ABC123      1    2500.00    [X] │    │
+│ │ [+ Add Item]                                              │    │
+│ │                                                                 │
+│ │ Subtotal     Shipping    Tax                                │    │
+│ │ $2500.00     [0.00   ]   [0.00   ]                          │    │
+│ │                          Grand Total: $2500.00               │    │
+│ │                                                                 │
+│ │ Approver Email       AP Email (optional)                      │    │
+│ │ [manager@...]       [ap@company.com]                        │    │
+│ │                                                                 │
+│ │ [Create PO]  [Cancel]                                        │    │
+│ └──────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### View PO
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 📋 snipe-po                          Dashboard    + New PO       │
+├─────────────────────────────────────────────────────────────────┤
+│ PO #PO-1                                    [approved] 📄 PDF  │
+│                                                                 │
+│ ┌─── PO Details ──────────────────┐  ┌─── Actions ──────────┐ │
+│ │ Supplier: Acme Corp              │  │                        │ │
+│ │ Date: 10/01/2026                  │  │ [Send to AP]           │ │
+│ │ Department: IT    GL Code: 5200   │  │                        │ │
+│ │ Terms: Net 30  Type: ACH         │  │ ────────────────────── │ │
+│ │ Approver: manager@company.com    │  │ Info                   │ │
+│ │ AP Email: ap@company.com          │  │ Created: 10/01 14:30   │ │
+│ └──────────────────────────────────┘  │ Updated: 10/02 09:15   │ │
+│                                       │ Approved: 10/02 09:15  │ │
+│ ┌─── Line Items ────────────────────────────────────────┐     │ │
+│ │ Desc        Model      Serial    Qty  Price   Total   │     │ │
+│ │ MacBook Pro 14" M3     ABC123      1  $2500  $2500    │     │ │
+│ ├───────────────────────────────────────────────────────┤     │ │
+│ │                      Subtotal:           $2500.00      │     │ │
+│ │                        Shipping:             $0.00      │     │ │
+│ │                             Tax:             $0.00      │     │ │
+│ │                      Grand Total:         $2500.00      │     │ │
+│ └───────────────────────────────────────────────────────┘     │ │
+│                                                                 │
+│ ┌─── History ────────────────────────────────────────────┐     │ │
+│ │ 10/01 14:30 created PO created with 1 line items       │     │ │
+│ │ 10/01 14:35 sent PO sent for approval                   │     │ │
+│ │ 10/02 09:15 approved PO approved                        │     │ │
+│ └───────────────────────────────────────────────────────┘     │ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Docker Compose
+
+See `docker-compose.example.yml` for a full setup with snipe-po, Snipe-IT, MariaDB, and Mailhog.
+
+```bash
+# Copy and customize
+cp docker-compose.example.yml docker-compose.yml
+# Edit docker-compose.yml and set your APP_KEY for Snipe-IT
+
+# Start all services
+docker-compose up -d
+
+# Access services:
+# - snipe-po Web UI: http://localhost:8080
+# - Snipe-IT:        http://localhost:8081
+# - Mailhog (SMTP):  http://localhost:8025
+```
 
 ## Database
 

@@ -1,0 +1,427 @@
+package server
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"html/template"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
+	"github.com/wzantopulos/snipe-po/config"
+	"github.com/wzantopulos/snipe-po/db"
+	"github.com/wzantopulos/snipe-po/pdf"
+)
+
+func jsonResponse(w http.ResponseWriter, data interface{}, status int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}
+
+func errorResponse(w http.ResponseWriter, message string, status int) {
+	jsonResponse(w, map[string]string{"error": message}, status)
+}
+
+// GET /api/pos - List all POs
+func listPOs(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	pos, err := db.GetAllPOs(status)
+	if err != nil {
+		errorResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	jsonResponse(w, pos, http.StatusOK)
+}
+
+// GET /api/pos/:id - Get single PO
+func getPO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+	jsonResponse(w, po, http.StatusOK)
+}
+
+type CreatePORequest struct {
+	Supplier      string `json:"supplier"`
+	Date         string `json:"date"`
+	Department   string `json:"department"`
+	GLCode       string `json:"gl_code"`
+	Terms        string `json:"terms"`
+	PaymentType  string `json:"payment_type"`
+	ShippingCost float64 `json:"shipping_cost"`
+	TaxCost      float64 `json:"tax_cost"`
+	ApproverEmail string `json:"approver_email"`
+	APEmail      string `json:"ap_email"`
+	LineItems    []struct {
+		Description string  `json:"description"`
+		Model       string  `json:"model"`
+		Serial      string  `json:"serial"`
+		Quantity    int     `json:"quantity"`
+		UnitPrice   float64 `json:"unit_price"`
+	} `json:"line_items"`
+}
+
+// POST /api/pos - Create new PO
+func createPO(w http.ResponseWriter, r *http.Request) {
+	var req CreatePORequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Supplier == "" {
+		errorResponse(w, "Supplier is required", http.StatusBadRequest)
+		return
+	}
+
+	cfg := config.Get()
+	poNumber, err := db.GetNextPONumber(cfg.PO.NumberPrefix)
+	if err != nil {
+		errorResponse(w, "Failed to generate PO number", http.StatusInternalServerError)
+		return
+	}
+
+	var subtotal float64
+	for _, item := range req.LineItems {
+		subtotal += float64(item.Quantity) * item.UnitPrice
+	}
+	grandTotal := subtotal + req.ShippingCost + req.TaxCost
+
+	date := req.Date
+	if date == "" {
+		date = time.Now().Format("01/02/2006")
+	}
+
+	terms := req.Terms
+	if terms == "" {
+		terms = cfg.PO.DefaultTerms
+	}
+
+	paymentType := req.PaymentType
+	if paymentType == "" {
+		paymentType = cfg.PO.DefaultPaymentType
+	}
+
+	now := time.Now()
+	po := &db.PurchaseOrder{
+		ID:              uuid.New().String(),
+		PONumber:        poNumber,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+		Status:          "draft",
+		Date:            date,
+		Supplier:        req.Supplier,
+		Terms:           terms,
+		PaymentType:     paymentType,
+		Department:      req.Department,
+		GLCode:          req.GLCode,
+		Subtotal:        subtotal,
+		ShippingCost:    req.ShippingCost,
+		TaxCost:         req.TaxCost,
+		GrandTotal:      grandTotal,
+		ApproverEmail:   req.ApproverEmail,
+		APEmail:         req.APEmail,
+	}
+
+	if err := db.CreatePO(po); err != nil {
+		errorResponse(w, "Failed to create PO: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for _, item := range req.LineItems {
+		qty := item.Quantity
+		if qty <= 0 {
+			qty = 1
+		}
+		unitPrice := item.UnitPrice
+		if unitPrice < 0 {
+			unitPrice = 0
+		}
+		dbItem := &db.LineItem{
+			POID:        po.ID,
+			Description: item.Description,
+			Model:       item.Model,
+			Serial:      item.Serial,
+			Quantity:    qty,
+			UnitPrice:   unitPrice,
+			Total:       float64(qty) * unitPrice,
+			Department:  req.Department,
+			GLCode:      req.GLCode,
+		}
+		if err := db.CreateLineItem(dbItem); err != nil {
+			errorResponse(w, "Failed to create line item: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	pdfPath, err := pdf.GeneratePDF(po, nil)
+	if err == nil && pdfPath != "" {
+		po.PDFPath = pdfPath
+		db.UpdatePO(po)
+	}
+
+	db.AddHistory(po.ID, "created", fmt.Sprintf("PO created with %d line items", len(req.LineItems)))
+
+	jsonResponse(w, po, http.StatusCreated)
+}
+
+// POST /api/pos/:id/send - Send PO for approval
+func sendPO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.Status != "draft" {
+		errorResponse(w, "Only draft POs can be sent for approval", http.StatusBadRequest)
+		return
+	}
+
+	po.Status = "pending_approval"
+	po.UpdatedAt = time.Now()
+	if err := db.UpdatePO(po); err != nil {
+		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
+		return
+	}
+
+	db.AddHistory(po.ID, "sent", "PO sent for approval")
+	jsonResponse(w, po, http.StatusOK)
+}
+
+// POST /api/pos/:id/approve - Approve PO
+func approvePO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.Status != "pending_approval" {
+		errorResponse(w, "Only POs pending approval can be approved", http.StatusBadRequest)
+		return
+	}
+
+	r.ParseForm()
+	note := r.Form.Get("note")
+
+	po.Status = "approved"
+	po.UpdatedAt = time.Now()
+	po.ApprovalNote = note
+	now := time.Now()
+	po.ApprovedAt = &now
+
+	if err := db.UpdatePO(po); err != nil {
+		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
+		return
+	}
+
+	db.AddHistory(po.ID, "approved", "PO approved")
+	if note != "" {
+		db.AddHistory(po.ID, "note", note)
+	}
+
+	jsonResponse(w, po, http.StatusOK)
+}
+
+// POST /api/pos/:id/reject - Reject PO
+func rejectPO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.Status != "pending_approval" {
+		errorResponse(w, "Only POs pending approval can be rejected", http.StatusBadRequest)
+		return
+	}
+
+	po.Status = "rejected"
+	po.UpdatedAt = time.Now()
+
+	if err := db.UpdatePO(po); err != nil {
+		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
+		return
+	}
+
+	db.AddHistory(po.ID, "rejected", "PO rejected")
+	jsonResponse(w, po, http.StatusOK)
+}
+
+// POST /api/pos/:id/send-to-ap - Send to AP
+func sendToAP(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.Status != "approved" {
+		errorResponse(w, "Only approved POs can be sent to AP", http.StatusBadRequest)
+		return
+	}
+
+	po.Status = "sent_to_ap"
+	po.UpdatedAt = time.Now()
+
+	if err := db.UpdatePO(po); err != nil {
+		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
+		return
+	}
+
+	db.AddHistory(po.ID, "sent_to_ap", "PO sent to Accounts Payable")
+	jsonResponse(w, po, http.StatusOK)
+}
+
+// POST /api/pos/:id/mark-paid - Mark as paid
+func markPaid(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.Status != "sent_to_ap" {
+		errorResponse(w, "Only POs sent to AP can be marked as paid", http.StatusBadRequest)
+		return
+	}
+
+	po.Status = "paid"
+	po.UpdatedAt = time.Now()
+
+	if err := db.UpdatePO(po); err != nil {
+		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
+		return
+	}
+
+	db.AddHistory(po.ID, "paid", "PO marked as paid")
+	jsonResponse(w, po, http.StatusOK)
+}
+
+// GET /api/pos/:id/pdf - Download PDF
+func getPDF(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.PDFPath == "" {
+		errorResponse(w, "No PDF generated for this PO", http.StatusNotFound)
+		return
+	}
+
+	http.ServeFile(w, r, po.PDFPath)
+}
+
+// Web handlers
+
+func dashboardHandler(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	pos, err := db.GetAllPOs(status)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"POs":    pos,
+		"Filter": status,
+	}
+
+	tmpl := template.Must(template.New("dashboard").Parse(dashboardTemplate))
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func createHandler(w http.ResponseWriter, r *http.Request) {
+	data := map[string]interface{}{
+		"Today": time.Now().Format("2006-01-02"),
+	}
+	tmpl := template.Must(template.New("create").Parse(createTemplate))
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func viewHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	po, err := db.GetPO(id)
+	if err != nil {
+		http.Error(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	items, _ := db.GetLineItems(id)
+	history, _ := db.GetHistory(id)
+
+	data := map[string]interface{}{
+		"PO":        po,
+		"LineItems": items,
+		"History":   history,
+	}
+
+	tmpl := template.Must(template.New("view").Parse(viewTemplate))
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// API route helpers
+
+func redirectToView(w http.ResponseWriter, r *http.Request, id string) {
+	http.Redirect(w, r, "/view?id="+id, http.StatusSeeOther)
+}
+
+func safeStr(s sql.NullString) string {
+	if s.Valid {
+		return s.String
+	}
+	return ""
+}
+
+func parseTimeStr(s string) time.Time {
+	t, _ := time.Parse("01/02/2006", s)
+	return t
+}
+
+func formatMoney(f float64) string {
+	return fmt.Sprintf("$%.2f", f)
+}
+
+func statusClass(status string) string {
+	return strings.ReplaceAll(status, "_", "-")
+}
+
+func strPtr(s string) *string {
+	return &s
+}
+
+func intPtr(i int64) *int {
+	v := int(i)
+	return &v
+}
+
+func floatPtr(f float64) *float64 {
+	return &f
+}
