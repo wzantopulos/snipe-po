@@ -43,11 +43,11 @@ RUN mkdir -p /app/data && chown -R snipepo:snipepo /app
 USER snipepo
 
 # Expose port
-EXPOSE 8080
+EXPOSE 80
 
 # Set volume for persistent data
 VOLUME ["/app/data"]
 
 # Entry point
 ENTRYPOINT ["./snipe-po"]
-CMD ["serve", "--port", "8080"]
+CMD ["serve", "--port", "80"]

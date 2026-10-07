@@ -1,5 +1,16 @@
 package server
 
+// Snipe-IT brand colors
+const (
+	snipeDarkBg    = "#2b2b2b"
+	snipeDarkBg2   = "#3d3d3d"
+	snipeAccent    = "#3c8dbc"
+	snipeAccentHov = "#337ab7"
+	snipeText      = "#eeeeee"
+	snipeTextMuted = "#aaaaaa"
+	snipeBorder    = "#444444"
+)
+
 var dashboardTemplate = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,9 +18,31 @@ var dashboardTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>snipe-po - Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background: #f8f9fa; }
-        .navbar-brand { font-weight: 600; }
+    <style id="theme-styles">
+        :root {
+            --bg-primary: #2b2b2b;
+            --bg-secondary: #3d3d3d;
+            --accent: #3c8dbc;
+            --accent-hover: #337ab7;
+            --text-main: #eeeeee;
+            --text-muted: #aaaaaa;
+            --border-color: #444444;
+            --card-bg: #323232;
+            --table-bg: #3d3d3d;
+            --light-text: #ffffff;
+        }
+        body { background: var(--bg-primary); color: var(--text-main); }
+        .navbar { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); }
+        .navbar-brand { font-weight: 600; color: var(--text-main) !important; display: flex; align-items: center; gap: 8px; }
+        .navbar-brand img { height: 28px; }
+        .nav-link { color: var(--text-muted) !important; }
+        .nav-link:hover, .nav-link.active { color: var(--text-main) !important; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); }
+        .table { color: var(--text-main); }
+        .table-light { background: var(--table-bg) !important; color: var(--text-main) !important; }
+        .form-control, .form-select { background: var(--bg-secondary); color: var(--text-main); border-color: var(--border-color); }
+        .form-control:focus, .form-select:focus { background: var(--bg-secondary); color: var(--text-main); border-color: var(--accent); }
+        .form-control::placeholder { color: var(--text-muted); }
         .status-badge { text-transform: capitalize; }
         .status-draft { background: #6c757d; }
         .status-pending_approval { background: #ffc107; color: #000; }
@@ -17,19 +50,52 @@ var dashboardTemplate = `<!DOCTYPE html>
         .status-sent_to_ap { background: #0d6efd; }
         .status-paid { background: #17a2b8; }
         .status-rejected { background: #dc3545; }
-        .table-hover tbody tr:hover { cursor: pointer; }
+        .table-hover tbody tr:hover { cursor: pointer; background: var(--bg-secondary) !important; }
         .amount { text-align: right; font-family: monospace; }
-        .nav-link.active { font-weight: 600; }
+        .text-muted { color: var(--text-muted) !important; }
+        h2, h5, h6 { color: var(--text-main); }
+        .badge { color: var(--light-text); }
+        /* Dark theme toggle button */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        /* Light theme overrides */
+        body.theme-light { background: #f8f9fa; color: #212529; }
+        body.theme-light .navbar { background: var(--accent) !important; border-bottom: none; }
+        body.theme-light .navbar-brand { color: #fff !important; }
+        body.theme-light .nav-link { color: rgba(255,255,255,0.75) !important; }
+        body.theme-light .nav-link:hover, body.theme-light .nav-link.active { color: #fff !important; }
+        body.theme-light .card { background: #fff; border: 1px solid #dee2e6; }
+        body.theme-light .table { color: #212529; }
+        body.theme-light .table-light { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light .form-control, body.theme-light .form-select { background: #fff; color: #212529; border-color: #ced4da; }
+        body.theme-light .form-control:focus { border-color: var(--accent); }
+        body.theme-light .form-control::placeholder { color: #6c757d; }
+        body.theme-light h2, body.theme-light h5, body.theme-light h6 { color: #212529; }
+        body.theme-light .text-muted { color: #6c757d !important; }
+        body.theme-light .theme-toggle { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); }
+        body.theme-light .theme-toggle:hover { border-color: #fff; color: #fff; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">&#128196; snipe-po</a>
+            <a class="navbar-brand" href="/">
+                <img src="https://snipe-it.io/wp-content/uploads/2022/09/snipe-it-logo.svg" alt="snipe-it" onerror="this.style.display='none'">
+                <span>&#128196; snipe-po</span>
+            </a>
             <div class="navbar-nav">
                 <a class="nav-link active" href="/">Dashboard</a>
                 <a class="nav-link" href="/create">+ New PO</a>
             </div>
+            <button class="theme-toggle" onclick="toggleTheme()">&#9788; Dark</button>
         </div>
     </nav>
 
@@ -84,6 +150,31 @@ var dashboardTemplate = `<!DOCTYPE html>
             </table>
         </div>
     </div>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            var body = document.body;
+            var btn = document.querySelector('.theme-toggle');
+            if (body.classList.contains('theme-light')) {
+                body.classList.remove('theme-light');
+                localStorage.setItem('theme', 'dark');
+                btn.innerHTML = '&#9788; Dark';
+            } else {
+                body.classList.add('theme-light');
+                localStorage.setItem('theme', 'light');
+                btn.innerHTML = '&#9790; Light';
+            }
+        }
+        // Restore theme from localStorage
+        (function() {
+            var theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.body.classList.add('theme-light');
+                document.querySelector('.theme-toggle').innerHTML = '&#9790; Light';
+            }
+        })();
+    </script>
 </body>
 </html>`
 
@@ -94,25 +185,106 @@ var createTemplate = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>snipe-po - Create PO</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background: #f8f9fa; }
-        .navbar-brand { font-weight: 600; }
-        .nav-link.active { font-weight: 600; }
-        .line-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; }
-        .line-item-row input { flex: 1; }
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+    <style id="theme-styles">
+        :root {
+            --bg-primary: #2b2b2b;
+            --bg-secondary: #3d3d3d;
+            --accent: #3c8dbc;
+            --accent-hover: #337ab7;
+            --text-main: #eeeeee;
+            --text-muted: #aaaaaa;
+            --border-color: #444444;
+            --card-bg: #323232;
+            --table-bg: #3d3d3d;
+            --light-text: #ffffff;
+        }
+        body { background: var(--bg-primary); color: var(--text-main); }
+        .navbar { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); }
+        .navbar-brand { font-weight: 600; color: var(--text-main) !important; display: flex; align-items: center; gap: 8px; }
+        .navbar-brand img { height: 28px; }
+        .nav-link { color: var(--text-muted) !important; }
+        .nav-link:hover, .nav-link.active { color: var(--text-main) !important; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); }
+        .card-header { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        .form-control, .form-select { background: var(--bg-secondary); color: var(--text-main); border-color: var(--border-color); }
+        .form-control:focus, .form-select:focus { background: var(--bg-secondary); color: var(--text-main); border-color: var(--accent); }
+        .form-control::placeholder { color: var(--text-muted); }
+        .form-label { color: var(--text-muted); }
+        h5, h6, .mb-0 { color: var(--text-main); }
+        hr { border-color: var(--border-color); }
+        .text-muted { color: var(--text-muted) !important; }
+        .line-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-start; flex-wrap: wrap; }
+        .line-item-row input { flex: 1; min-width: 120px; }
         .line-item-row input[type="number"] { max-width: 100px; flex: 0 0 100px; }
         .remove-item { flex: 0 0 40px; }
-        #line-items-container .card { margin-bottom: 10px; }
+        #line-items-container .card { margin-bottom: 10px; background: var(--bg-secondary); border: 1px solid var(--border-color); }
+        /* Dark theme toggle button */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        /* Light theme overrides */
+        body.theme-light { background: #f8f9fa; color: #212529; }
+        body.theme-light .navbar { background: var(--accent) !important; border-bottom: none; }
+        body.theme-light .navbar-brand { color: #fff !important; }
+        body.theme-light .nav-link { color: rgba(255,255,255,0.75) !important; }
+        body.theme-light .nav-link:hover, body.theme-light .nav-link.active { color: #fff !important; }
+        body.theme-light .card { background: #fff; border: 1px solid #dee2e6; }
+        body.theme-light .card-header { background: var(--accent) !important; color: #fff; border-bottom: none; }
+        body.theme-light .form-control, body.theme-light .form-select { background: #fff; color: #212529; border-color: #ced4da; }
+        body.theme-light .form-control:focus { border-color: var(--accent); }
+        body.theme-light .form-control::placeholder { color: #6c757d; }
+        body.theme-light .form-label { color: #495057; }
+        body.theme-light h5, body.theme-light h6, body.theme-light .mb-0 { color: #212529; }
+        body.theme-light hr { border-color: #dee2e6; }
+        body.theme-light .text-muted { color: #6c757d !important; }
+        body.theme-light .theme-toggle { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); }
+        body.theme-light .theme-toggle:hover { border-color: #fff; color: #fff; }
+        body.theme-light #line-items-container .card { background: #fff; border: 1px solid #dee2e6; }
+        /* Select2 dark theme overrides */
+        .select2-container--default .select2-selection--single { background: var(--bg-secondary) !important; border-color: var(--border-color) !important; }
+        .select2-container--default .select2-selection--single .select2-selection__rendered { color: var(--text-main) !important; }
+        .select2-dropdown { background: var(--bg-secondary); border-color: var(--border-color); }
+        .select2-container--default .select2-results__option { color: var(--text-main); }
+        .select2-container--default .select2-search--dropdown .select2-search__field { background: var(--bg-primary); color: var(--text-main); border-color: var(--border-color); }
+        body.theme-light .select2-container--default .select2-selection--single { background: #fff !important; border-color: #ced4da !important; }
+        body.theme-light .select2-container--default .select2-selection--single .select2-selection__rendered { color: #212529 !important; }
+        body.theme-light .select2-dropdown { background: #fff; border-color: #ced4da; }
+        body.theme-light .select2-container--default .select2-results__option { color: #212529; }
+        body.theme-light .select2-container--default .select2-search--dropdown .select2-search__field { background: #fff; color: #212529; border-color: #ced4da; }
+        /* Snipe-IT link button */
+        .snipe-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--accent);
+            font-size: 0.85rem;
+            text-decoration: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .snipe-link:hover { color: var(--accent-hover); background: rgba(60, 140, 188, 0.1); }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">&#128196; snipe-po</a>
+            <a class="navbar-brand" href="/">
+                <img src="https://snipe-it.io/wp-content/uploads/2022/09/snipe-it-logo.svg" alt="snipe-it" onerror="this.style.display='none'">
+                <span>&#128196; snipe-po</span>
+            </a>
             <div class="navbar-nav">
                 <a class="nav-link" href="/">Dashboard</a>
                 <a class="nav-link active" href="/create">+ New PO</a>
             </div>
+            <button class="theme-toggle" onclick="toggleTheme()">&#9788; Dark</button>
         </div>
     </nav>
 
@@ -120,7 +292,7 @@ var createTemplate = `<!DOCTYPE html>
         <div class="row">
             <div class="col-lg-8">
                 <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header">
                         <h5 class="mb-0">Create Purchase Order</h5>
                     </div>
                     <div class="card-body">
@@ -128,7 +300,9 @@ var createTemplate = `<!DOCTYPE html>
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Supplier *</label>
-                                    <input type="text" name="supplier" class="form-control" required>
+                                    <select name="supplier" id="supplier-select" class="form-select" required>
+                                        <option value="">Select or type supplier...</option>
+                                    </select>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">Date *</label>
@@ -168,7 +342,12 @@ var createTemplate = `<!DOCTYPE html>
                             </div>
 
                             <hr>
-                            <h5>Line Items</h5>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="mb-0">Line Items</h5>
+                                <a href="{{.SnipeITURL}}/hardware/create" target="_blank" class="snipe-link">
+                                    Create in Snipe-IT &#8594;
+                                </a>
+                            </div>
                             <div id="line-items-container">
                                 <div class="line-item-row" data-index="0">
                                     <input type="text" name="items[0].description" placeholder="Description" required>
@@ -199,7 +378,7 @@ var createTemplate = `<!DOCTYPE html>
                             <div class="row mb-3">
                                 <div class="col-md-4 offset-md-8">
                                     <label class="form-label"><strong>Grand Total</strong></label>
-                                    <div class="form-control bg-light" id="grand_total"><strong>$0.00</strong></div>
+                                    <div class="form-control" id="grand_total"><strong>$0.00</strong></div>
                                 </div>
                             </div>
 
@@ -234,6 +413,7 @@ var createTemplate = `<!DOCTYPE html>
                             <li>Create POs as drafts and send for approval when ready</li>
                             <li>Use the CLI for Snipe-IT asset imports</li>
                             <li>PDFs are generated automatically</li>
+                            <li>Suppliers are loaded from Snipe-IT manufacturers</li>
                         </ul>
                     </div>
                 </div>
@@ -241,8 +421,56 @@ var createTemplate = `<!DOCTYPE html>
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         var itemIndex = 1;
+        var snipeITURL = "{{.SnipeITURL}}";
+
+        // Theme toggle
+        function toggleTheme() {
+            var body = document.body;
+            var btn = document.querySelector('.theme-toggle');
+            if (body.classList.contains('theme-light')) {
+                body.classList.remove('theme-light');
+                localStorage.setItem('theme', 'dark');
+                btn.innerHTML = '&#9788; Dark';
+            } else {
+                body.classList.add('theme-light');
+                localStorage.setItem('theme', 'light');
+                btn.innerHTML = '&#9790; Light';
+            }
+        }
+        (function() {
+            var theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.body.classList.add('theme-light');
+                document.querySelector('.theme-toggle').innerHTML = '&#9790; Light';
+            }
+        })();
+
+        // Initialize supplier dropdown with Select2
+        $(document).ready(function() {
+            var $select = $('#supplier-select').select2({
+                ajax: {
+                    url: '/api/suppliers',
+                    dataType: 'json',
+                    delay: 250,
+                    processResults: function(data) {
+                        return {
+                            results: data.map(function(item) {
+                                return { id: item.name, text: item.name };
+                            })
+                        };
+                    },
+                    cache: true
+                },
+                placeholder: 'Select or type supplier...',
+                allowClear: true,
+                tags: true,
+                tokenSeparators: [',']
+            });
+        });
 
         function addLineItem() {
             var container = document.getElementById("line-items-container");
@@ -268,7 +496,7 @@ var createTemplate = `<!DOCTYPE html>
         }
 
         document.getElementById("line-items-container").addEventListener("input", function(e) {
-            if (e.target.name && e.target.name.includes(".unit_price") || e.target.name && e.target.name.includes(".quantity")) {
+            if (e.target.name && (e.target.name.includes(".unit_price") || e.target.name.includes(".quantity"))) {
                 calculateTotals();
             }
         });
@@ -346,12 +574,33 @@ var viewTemplate = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>snipe-po - View PO #` + "{{.PO.PONumber}}" + `</title>
+    <title>snipe-po - View PO #{{.PO.PONumber}}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { background: #f8f9fa; }
-        .navbar-brand { font-weight: 600; }
-        .nav-link.active { font-weight: 600; }
+    <style id="theme-styles">
+        :root {
+            --bg-primary: #2b2b2b;
+            --bg-secondary: #3d3d3d;
+            --accent: #3c8dbc;
+            --accent-hover: #337ab7;
+            --text-main: #eeeeee;
+            --text-muted: #aaaaaa;
+            --border-color: #444444;
+            --card-bg: #323232;
+            --table-bg: #3d3d3d;
+            --light-text: #ffffff;
+        }
+        body { background: var(--bg-primary); color: var(--text-main); }
+        .navbar { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); }
+        .navbar-brand { font-weight: 600; color: var(--text-main) !important; display: flex; align-items: center; gap: 8px; }
+        .navbar-brand img { height: 28px; }
+        .nav-link { color: var(--text-muted) !important; }
+        .nav-link:hover, .nav-link.active { color: var(--text-main) !important; }
+        .card { background: var(--card-bg); border: 1px solid var(--border-color); }
+        .card-header { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+        .table { color: var(--text-main); }
+        .table-light { background: var(--table-bg) !important; color: var(--text-main) !important; }
+        .form-control { background: var(--bg-secondary); color: var(--text-main); border-color: var(--border-color); }
+        .form-label { color: var(--text-muted); }
         .status-badge { text-transform: capitalize; }
         .status-draft { background: #6c757d; }
         .status-pending_approval { background: #ffc107; color: #000; }
@@ -361,22 +610,55 @@ var viewTemplate = `<!DOCTYPE html>
         .status-rejected { background: #dc3545; }
         .amount { font-family: monospace; }
         .history-timeline { font-size: 0.9em; }
+        .text-muted { color: var(--text-muted) !important; }
+        h2, h5, h6, .mb-0 { color: var(--text-main); }
+        /* Dark theme toggle button */
+        .theme-toggle {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        /* Light theme overrides */
+        body.theme-light { background: #f8f9fa; color: #212529; }
+        body.theme-light .navbar { background: var(--accent) !important; border-bottom: none; }
+        body.theme-light .navbar-brand { color: #fff !important; }
+        body.theme-light .nav-link { color: rgba(255,255,255,0.75) !important; }
+        body.theme-light .nav-link:hover, body.theme-light .nav-link.active { color: #fff !important; }
+        body.theme-light .card { background: #fff; border: 1px solid #dee2e6; }
+        body.theme-light .card-header { background: var(--accent) !important; color: #fff; border-bottom: none; }
+        body.theme-light .table { color: #212529; }
+        body.theme-light .table-light { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light .form-control { background: #fff; color: #212529; border-color: #ced4da; }
+        body.theme-light .form-label { color: #495057; }
+        body.theme-light h2, body.theme-light h5, body.theme-light h6, body.theme-light .mb-0 { color: #212529; }
+        body.theme-light .text-muted { color: #6c757d !important; }
+        body.theme-light .theme-toggle { border-color: rgba(255,255,255,0.5); color: rgba(255,255,255,0.8); }
+        body.theme-light .theme-toggle:hover { border-color: #fff; color: #fff; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">&#128196; snipe-po</a>
+            <a class="navbar-brand" href="/">
+                <img src="https://snipe-it.io/wp-content/uploads/2022/09/snipe-it-logo.svg" alt="snipe-it" onerror="this.style.display='none'">
+                <span>&#128196; snipe-po</span>
+            </a>
             <div class="navbar-nav">
                 <a class="nav-link" href="/">Dashboard</a>
                 <a class="nav-link" href="/create">+ New PO</a>
             </div>
+            <button class="theme-toggle" onclick="toggleTheme()">&#9788; Dark</button>
         </div>
     </nav>
 
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>PO #` + "{{.PO.PONumber}}" + `</h2>
+            <h2>PO #{{.PO.PONumber}}</h2>
             <div>
                 <span class="badge status-badge status-{{.PO.Status}} fs-6">{{.PO.Status}}</span>
                 {{if .PO.PDFPath}}
@@ -504,7 +786,7 @@ var viewTemplate = `<!DOCTYPE html>
             <div class="col-lg-4">
                 <!-- Actions -->
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
+                    <div class="card-header">
                         <h5 class="mb-0">Actions</h5>
                     </div>
                     <div class="card-body d-grid gap-2">
@@ -559,5 +841,29 @@ var viewTemplate = `<!DOCTYPE html>
             </div>
         </div>
     </div>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            var body = document.body;
+            var btn = document.querySelector('.theme-toggle');
+            if (body.classList.contains('theme-light')) {
+                body.classList.remove('theme-light');
+                localStorage.setItem('theme', 'dark');
+                btn.innerHTML = '&#9788; Dark';
+            } else {
+                body.classList.add('theme-light');
+                localStorage.setItem('theme', 'light');
+                btn.innerHTML = '&#9790; Light';
+            }
+        }
+        (function() {
+            var theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.body.classList.add('theme-light');
+                document.querySelector('.theme-toggle').innerHTML = '&#9790; Light';
+            }
+        })();
+    </script>
 </body>
 </html>`

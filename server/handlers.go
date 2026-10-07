@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -328,6 +329,60 @@ func getPDF(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, po.PDFPath)
 }
 
+// GET /api/suppliers - Fetch manufacturers from Snipe-IT
+func listSuppliers(w http.ResponseWriter, r *http.Request) {
+	cfg := config.Get()
+	if cfg.SnipeIT.URL == "" || cfg.SnipeIT.APIKey == "" {
+		jsonResponse(w, []map[string]string{}, http.StatusOK)
+		return
+	}
+
+	url := strings.TrimRight(cfg.SnipeIT.URL, "/") + "/api/v1/manufacturers"
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		errorResponse(w, "Failed to create request", http.StatusInternalServerError)
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.SnipeIT.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		jsonResponse(w, []map[string]string{}, http.StatusOK)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		jsonResponse(w, []map[string]string{}, http.StatusOK)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		jsonResponse(w, []map[string]string{}, http.StatusOK)
+		return
+	}
+
+	var result struct {
+		Rows []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		} `json:"rows"`
+	}
+	if err := json.Unmarshal(body, &result); err != nil {
+		jsonResponse(w, []map[string]string{}, http.StatusOK)
+		return
+	}
+
+	suppliers := make([]map[string]string, 0, len(result.Rows))
+	for _, m := range result.Rows {
+		suppliers = append(suppliers, map[string]string{"id": fmt.Sprintf("%d", m.ID), "name": m.Name})
+	}
+	jsonResponse(w, suppliers, http.StatusOK)
+}
+
 // Web handlers
 
 func dashboardHandler(w http.ResponseWriter, r *http.Request) {
@@ -350,8 +405,14 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func createHandler(w http.ResponseWriter, r *http.Request) {
+	cfg := config.Get()
+	snipeURL := ""
+	if cfg != nil {
+		snipeURL = strings.TrimRight(cfg.SnipeIT.URL, "/")
+	}
 	data := map[string]interface{}{
-		"Today": time.Now().Format("2006-01-02"),
+		"Today":       time.Now().Format("2006-01-02"),
+		"SnipeITURL": snipeURL,
 	}
 	tmpl := template.Must(template.New("create").Parse(createTemplate))
 	if err := tmpl.Execute(w, data); err != nil {
