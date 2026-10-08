@@ -274,7 +274,7 @@ func rejectPO(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.AddHistory(po.ID, "rejected", "PO rejected")
-	jsonResponse(w, po, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // POST /api/pos/:id/send-to-ap - Send to AP
