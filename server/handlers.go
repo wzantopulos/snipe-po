@@ -232,7 +232,7 @@ func approvePO(w http.ResponseWriter, r *http.Request) {
 		db.AddHistory(po.ID, "note", note)
 	}
 
-	jsonResponse(w, po, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // POST /api/pos/:id/reject - Reject PO
