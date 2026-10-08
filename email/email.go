@@ -30,13 +30,23 @@ func SendEmail(to []string, subject, body, attachmentPath string) error {
 
 	msg := buildMessage(from, to, subject, body, attachmentPath)
 
+	// Port 465 uses implicit TLS (direct TLS connection)
+	// Port 587 uses explicit TLS (STARTTLS after connection)
+	if port == 465 {
+		return sendWithImplicitTLS(addr, host, from, to, auth, msg)
+	}
+	return sendWithSTARTTLS(addr, host, from, to, auth, msg)
+}
+
+// sendWithImplicitTLS connects directly with TLS (port 465)
+func sendWithImplicitTLS(addr, host, from string, to []string, auth smtp.Auth, msg string) error {
 	tlsConfig := &tls.Config{
 		ServerName: host,
 	}
 
 	conn, err := tls.Dial("tcp", addr, tlsConfig)
 	if err != nil {
-		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+		return fmt.Errorf("failed to connect to SMTP server with TLS: %w", err)
 	}
 	defer conn.Close()
 
@@ -52,6 +62,46 @@ func SendEmail(to []string, subject, body, attachmentPath string) error {
 		}
 	}
 
+	return sendWithClient(client, from, to, msg)
+}
+
+// sendWithSTARTTLS connects and upgrades with STARTTLS (port 587)
+func sendWithSTARTTLS(addr, host, from string, to []string, auth smtp.Auth, msg string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+	}
+	defer conn.Close()
+
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP client: %w", err)
+	}
+	defer client.Close()
+
+	// Send EHLO
+	if err := client.Hello("localhost"); err != nil {
+		return fmt.Errorf("SMTP EHLO failed: %w", err)
+	}
+
+	// Start TLS
+	tlsConfig := &tls.Config{
+		ServerName: host,
+	}
+	if err := client.StartTLS(tlsConfig); err != nil {
+		return fmt.Errorf("SMTP STARTTLS failed: %w", err)
+	}
+
+	if auth != nil {
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("SMTP auth failed: %w", err)
+		}
+	}
+
+	return sendWithClient(client, from, to, msg)
+}
+
+func sendWithClient(client *smtp.Client, from string, to []string, msg string) error {
 	if err := client.Mail(from); err != nil {
 		return fmt.Errorf("SMTP MAIL FROM failed: %w", err)
 	}
@@ -150,15 +200,4 @@ func encodeBase64(data []byte) string {
 	}
 
 	return sb.String()
-}
-
-func startTLS(client *smtp.Client, host string) error {
-	err := client.StartTLS(&tls.Config{
-		ServerName: host,
-	})
-	return err
-}
-
-func dial(addr string) (net.Conn, error) {
-	return net.Dial("tcp", addr)
 }
