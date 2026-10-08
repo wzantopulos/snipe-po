@@ -75,6 +75,12 @@ var dashboardTemplate = `<!DOCTYPE html>
         body.theme-light .card { background: #fff; border: 1px solid #dee2e6; }
         body.theme-light .table { color: #212529; }
         body.theme-light .table-light { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light .card-body { color: #212529; }
+        body.theme-light .card-body strong { color: #212529; }
+        body.theme-light thead { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light thead th { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light tfoot { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light tfoot td { background: #f8f9fa !important; color: #212529 !important; }
         body.theme-light .form-control, body.theme-light .form-select { background: #fff; color: #212529; border-color: #ced4da; }
         body.theme-light .form-control:focus { border-color: var(--accent); }
         body.theme-light .form-control::placeholder { color: #6c757d; }
@@ -596,6 +602,12 @@ var viewTemplate = `<!DOCTYPE html>
         .card-header { background: var(--bg-secondary) !important; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
         .table { color: var(--text-main); }
         .table-light { background: var(--table-bg) !important; color: var(--text-main) !important; }
+        .card-body { color: var(--text-main); }
+        .card-body strong { color: var(--text-main); }
+        thead { background: var(--table-bg) !important; color: var(--text-main) !important; }
+        thead th { background: var(--table-bg) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
+        tfoot { background: var(--table-bg) !important; color: var(--text-main) !important; }
+        tfoot td { background: var(--table-bg) !important; color: var(--text-main) !important; border-color: var(--border-color) !important; }
         .form-control { background: var(--bg-secondary); color: var(--text-main); border-color: var(--border-color); }
         .form-label { color: var(--text-muted); }
         .status-badge { text-transform: capitalize; }
@@ -630,6 +642,12 @@ var viewTemplate = `<!DOCTYPE html>
         body.theme-light .card-header { background: var(--accent) !important; color: #fff; border-bottom: none; }
         body.theme-light .table { color: #212529; }
         body.theme-light .table-light { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light .card-body { color: #212529; }
+        body.theme-light .card-body strong { color: #212529; }
+        body.theme-light thead { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light thead th { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light tfoot { background: #f8f9fa !important; color: #212529 !important; }
+        body.theme-light tfoot td { background: #f8f9fa !important; color: #212529 !important; }
         body.theme-light .form-control { background: #fff; color: #212529; border-color: #ced4da; }
         body.theme-light .form-label { color: #495057; }
         body.theme-light h2, body.theme-light h5, body.theme-light h6, body.theme-light .mb-0 { color: #212529; }
@@ -807,6 +825,12 @@ var viewTemplate = `<!DOCTYPE html>
                         {{if eq .PO.Status "approved"}}
                         <form method="post" action="/api/pos/{{.PO.ID}}/send-to-ap">
                             <button type="submit" class="btn btn-primary w-100">&#128228; Send to AP</button>
+                        </form>
+                        {{end}}
+
+                        {{if eq .PO.Status "rejected"}}
+                        <form method="post" action="/api/pos/{{.PO.ID}}/send">
+                            <button type="submit" class="btn btn-primary w-100">&#128228; Resend for Approval</button>
                         </form>
                         {{end}}
 
