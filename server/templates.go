@@ -540,7 +540,6 @@ var createTemplate = `<!DOCTYPE html>
                     data.line_items.push({
                         description: desc,
                         model: row.querySelector('input[name*=".model"]').value,
-                        serial: row.querySelector('input[name*=".serial"]').value,
                         quantity: parseInt(row.querySelector('input[name*=".quantity"]').value) || 1,
                         unit_price: parseFloat(row.querySelector('input[name*=".unit_price"]').value) || 0
                     });
@@ -712,7 +711,6 @@ var viewTemplate = `<!DOCTYPE html>
                             <tr>
                                 <th>Description</th>
                                 <th>Model</th>
-                                <th>Serial</th>
                                 <th class="text-center">Qty</th>
                                 <th class="text-end">Unit Price</th>
                                 <th class="text-end">Total</th>
@@ -723,7 +721,6 @@ var viewTemplate = `<!DOCTYPE html>
                             <tr>
                                 <td>{{.Description}}</td>
                                 <td>{{.Model}}</td>
-                                <td><small>{{.Serial}}</small></td>
                                 <td class="text-center">{{.Quantity}}</td>
                                 <td class="text-end amount">${{printf "%.2f" .UnitPrice}}</td>
                                 <td class="text-end amount">${{printf "%.2f" .Total}}</td>
