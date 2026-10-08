@@ -3,8 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -64,11 +62,7 @@ func Init() error {
 }
 
 func initDB() error {
-	exePath, err := os.Executable()
 	dbPath := "/data/po.db"
-	if err == nil {
-		dbPath = filepath.Join("/data", "po.db")
-	}
 
 	sqliteDB, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
