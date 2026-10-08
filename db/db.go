@@ -208,6 +208,11 @@ func UpdatePO(po *PurchaseOrder) error {
 	return err
 }
 
+func DeletePO(id string) error {
+	_, err := db.Exec(`DELETE FROM purchase_orders WHERE id = ?`, id)
+	return err
+}
+
 func CreateLineItem(item *LineItem) error {
 	result, err := db.Exec(`
 		INSERT INTO line_items (po_id, asset_id, description, model, mac, serial, quantity, unit_price, total, department, gl_code)

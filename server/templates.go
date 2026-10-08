@@ -837,6 +837,12 @@ var viewTemplate = `<!DOCTYPE html>
                         </form>
                         {{end}}
 
+                        {{if eq .PO.Status "draft"}}
+                        <form method="post" action="/api/pos/{{.PO.ID}}/delete" onsubmit="return confirm('Delete this PO?');">
+                            <button type="submit" class="btn btn-danger w-100">&#128465; Delete PO</button>
+                        </form>
+                        {{end}}
+
                         <a href="/" class="btn btn-outline-secondary">&larr; Back to Dashboard</a>
                     </div>
                 </div>

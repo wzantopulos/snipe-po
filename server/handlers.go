@@ -235,6 +235,22 @@ func approvePO(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/pos/:id/reject - Reject PO
+func deletePO(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		http.Error(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if err := db.DeletePO(po.ID); err != nil {
+		http.Error(w, "Failed to delete PO", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func rejectPO(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	po, err := db.GetPO(vars["id"])
