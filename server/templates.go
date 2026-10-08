@@ -803,7 +803,7 @@ var viewTemplate = `<!DOCTYPE html>
                         <h5 class="mb-0">Actions</h5>
                     </div>
                     <div class="card-body d-grid gap-2">
-                        {{if eq .PO.Status "draft"}}
+                        {{if or (eq .PO.Status "draft") (eq .PO.Status "rejected")}}
                         <form method="post" action="/api/pos/{{.PO.ID}}/send">
                             <button type="submit" class="btn btn-primary w-100">&#128228; Send for Approval</button>
                         </form>
@@ -825,12 +825,6 @@ var viewTemplate = `<!DOCTYPE html>
                         {{if eq .PO.Status "approved"}}
                         <form method="post" action="/api/pos/{{.PO.ID}}/send-to-ap">
                             <button type="submit" class="btn btn-primary w-100">&#128228; Send to AP</button>
-                        </form>
-                        {{end}}
-
-                        {{if eq .PO.Status "rejected"}}
-                        <form method="post" action="/api/pos/{{.PO.ID}}/send">
-                            <button type="submit" class="btn btn-primary w-100">&#128228; Resend for Approval</button>
                         </form>
                         {{end}}
 
