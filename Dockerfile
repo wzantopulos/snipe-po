@@ -37,7 +37,7 @@ COPY --from=builder /build/snipe-po .
 COPY settings.example.yaml .
 
 # Create data directory
-RUN mkdir -p /app/data /data && chown -R snipepo:snipepo /app
+RUN mkdir -p /app/data /data && chown -R snipepo:snipepo /app /data
 
 # Switch to non-root user
 USER snipepo
