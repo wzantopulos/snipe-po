@@ -182,12 +182,13 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if po.Status != "draft" {
-		errorResponse(w, "Only draft POs can be sent for approval", http.StatusBadRequest)
+	if po.Status != "draft" && po.Status != "pending_approval" {
+		errorResponse(w, "Only draft or pending POs can be sent for approval", http.StatusBadRequest)
 		return
 	}
 
 	po.Status = "pending_approval"
+	po.UpdatedAt = time.Now()
 	po.UpdatedAt = time.Now()
 	if err := db.UpdatePO(po); err != nil {
 		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
