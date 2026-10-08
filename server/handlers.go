@@ -346,7 +346,7 @@ func getPDF(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, po.PDFPath)
 }
 
-// GET /api/suppliers - Fetch manufacturers from Snipe-IT
+// GET /api/suppliers - Fetch suppliers from Snipe-IT
 func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()
 	if cfg.SnipeIT.APIKey == "" {
@@ -355,10 +355,8 @@ func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Use internal docker network URL for Snipe-IT API calls
-	// The public SNIPE_PO_SNIPEIT_URL may be set to an external URL, but from
-	// inside the Docker network we must use the internal container URL
 	snipeURL := "http://snipeit:80"
-	url := snipeURL + "/api/v1/manufacturers"
+	url := snipeURL + "/api/v1/suppliers"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
