@@ -340,7 +340,7 @@ func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	// Use internal docker network URL for Snipe-IT API calls
 	// The public SNIPE_PO_SNIPEIT_URL may be set to an external URL, but from
 	// inside the Docker network we must use the internal container URL
-	snipeURL := "http://app:80"
+	snipeURL := "http://snipeit:80"
 	url := snipeURL + "/api/v1/manufacturers"
 
 	req, err := http.NewRequest("GET", url, nil)
