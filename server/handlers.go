@@ -195,7 +195,7 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.AddHistory(po.ID, "sent", "PO sent for approval")
-	jsonResponse(w, po, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // POST /api/pos/:id/approve - Approve PO
