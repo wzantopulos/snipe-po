@@ -32,10 +32,13 @@ func SendEmail(to []string, subject, body, attachmentPath string) error {
 
 	// Port 465 uses implicit TLS (direct TLS connection)
 	// Port 587 uses explicit TLS (STARTTLS after connection)
+	// Port 25 uses no encryption (plaintext)
 	if port == 465 {
 		return sendWithImplicitTLS(addr, host, from, to, auth, msg)
+	} else if port == 587 {
+		return sendWithSTARTTLS(addr, host, from, to, auth, msg)
 	}
-	return sendWithSTARTTLS(addr, host, from, to, auth, msg)
+	return sendWithPlaintext(addr, host, from, to, auth, msg)
 }
 
 // sendWithImplicitTLS connects directly with TLS (port 465)
@@ -66,6 +69,28 @@ func sendWithImplicitTLS(addr, host, from string, to []string, auth smtp.Auth, m
 }
 
 // sendWithSTARTTLS connects and upgrades with STARTTLS (port 587)
+func sendWithPlaintext(addr, host, from string, to []string, auth smtp.Auth, msg string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SMTP server: %w", err)
+	}
+	defer conn.Close()
+
+	client, err := smtp.NewClient(conn, host)
+	if err != nil {
+		return fmt.Errorf("failed to create SMTP client: %w", err)
+	}
+	defer client.Close()
+
+	if auth != nil {
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("SMTP auth failed: %w", err)
+		}
+	}
+
+	return sendWithClient(client, from, to, msg)
+}
+
 func sendWithSTARTTLS(addr, host, from string, to []string, auth smtp.Auth, msg string) error {
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {
