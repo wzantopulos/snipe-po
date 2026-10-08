@@ -65,9 +65,9 @@ func Init() error {
 
 func initDB() error {
 	exePath, err := os.Executable()
-	dbPath := "po.db"
+	dbPath := "/app/data/po.db"
 	if err == nil {
-		dbPath = filepath.Join(filepath.Dir(exePath), "po.db")
+		dbPath = filepath.Join("/app/data", "po.db")
 	}
 
 	sqliteDB, err := sql.Open("sqlite3", dbPath)
