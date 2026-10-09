@@ -18,7 +18,7 @@ func Start(port int) error {
 	api.HandleFunc("/pos", createPO).Methods("POST")
 	api.HandleFunc("/pos/{id}", getPO).Methods("GET")
 	api.HandleFunc("/pos/{id}/send", sendPO).Methods("POST")
-	api.HandleFunc("/pos/{id}/approve", approvePO).Methods("POST")
+	api.HandleFunc("/pos/{id}/approve", approvePO).Methods("POST", "GET")
 	api.HandleFunc("/pos/{id}/reject", rejectPO).Methods("POST")
 	api.HandleFunc("/pos/{id}/send-to-ap", sendToAP).Methods("POST")
 	api.HandleFunc("/pos/{id}/mark-paid", uploadPackingSlip).Methods("POST")
