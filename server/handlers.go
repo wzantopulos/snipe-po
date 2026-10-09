@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/wzantopulos/snipe-po/email"
 	"github.com/wzantopulos/snipe-po/config"
 	"github.com/wzantopulos/snipe-po/db"
 	"github.com/wzantopulos/snipe-po/pdf"
@@ -189,13 +190,26 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 
 	po.Status = "pending_approval"
 	po.UpdatedAt = time.Now()
-	po.UpdatedAt = time.Now()
+
 	if err := db.UpdatePO(po); err != nil {
 		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
 		return
 	}
 
 	db.AddHistory(po.ID, "sent", "PO sent for approval")
+
+	// Send approval email
+	go func() {
+		subject := fmt.Sprintf("Purchase Order %s Requires Approval", po.PONumber)
+		body := fmt.Sprintf("A new purchase order requires your approval.\n\nPO Number: %s\nSupplier: %s\nTotal: $%.2f\n\nPlease review and approve or reject at your earliest convenience.",
+				po.PONumber, po.Supplier, po.GrandTotal)
+		if err := email.SendEmail([]string{po.ApproverEmail}, subject, body, po.PDFPath); err != nil {
+			fmt.Printf("Failed to send approval email: %v\n", err)
+		} else {
+			fmt.Printf("Approval email sent to %s\n", po.ApproverEmail)
+		}
+	}()
+
 	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
