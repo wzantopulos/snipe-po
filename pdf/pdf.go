@@ -153,11 +153,22 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(95, 6, "Approved By:")
 	pdf.Ln(6)
-	pdf.Cell(95, 6, "")
+	pdf.SetFont("Arial", "", 10)
+	if po.ApproverEmail != "" {
+		pdf.Cell(95, 6, po.ApproverEmail)
+	} else {
+		pdf.Cell(95, 6, "")
+	}
 	pdf.Ln(6)
 	pdf.SetFont("Arial", "", 8)
 	pdf.Cell(95, 4, "Signature")
 	pdf.Cell(95, 4, "Date")
+	pdf.Ln(4)
+	if po.ApprovedAt != nil {
+		pdf.SetFont("Arial", "I", 8)
+		pdf.Cell(95, 4, "")
+		pdf.Cell(95, 4, po.ApprovedAt.Format("01/02/2006"))
+	}
 
 	pdf.SetY(-30)
 	pdf.SetFont("Arial", "I", 8)
