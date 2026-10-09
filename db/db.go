@@ -15,42 +15,42 @@ var (
 )
 
 type PurchaseOrder struct {
-	ID              string
-	PONumber       string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	Status          string
-	Date            string
-	Supplier        string
-	SupplierContact string
-	Terms           string
-	PaymentType     string
-	Department      string
-	GLCode          string
-	Subtotal        float64
-	ShippingCost    float64
-	TaxCost         float64
-	GrandTotal      float64
-	ApproverEmail   string
-	APEmail         string
-	ApprovalNote    string
-	ApprovedAt      *time.Time
-	PDFPath         string
+	ID              string    `json:"id"`
+	PONumber       string    `json:"po_number"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	Status          string    `json:"status"`
+	Date            string    `json:"date"`
+	Supplier        string    `json:"supplier"`
+	SupplierContact string    `json:"supplier_contact"`
+	Terms           string    `json:"terms"`
+	PaymentType     string    `json:"payment_type"`
+	Department      string    `json:"department"`
+	GLCode          string    `json:"gl_code"`
+	Subtotal        float64   `json:"subtotal"`
+	ShippingCost    float64   `json:"shipping_cost"`
+	TaxCost         float64   `json:"tax_cost"`
+	GrandTotal      float64   `json:"grand_total"`
+	ApproverEmail   string    `json:"approver_email"`
+	APEmail         string    `json:"ap_email"`
+	ApprovalNote    string    `json:"approval_note"`
+	ApprovedAt      *time.Time `json:"approved_at,omitempty"`
+	PDFPath         string    `json:"pdf_path"`
 }
 
 type LineItem struct {
-	ID          int64
-	POID        string
-	AssetID     string
-	Description string
-	Model       string
-	MAC         string
-	Serial      string
-	Quantity    int
-	UnitPrice   float64
-	Total       float64
-	Department  string
-	GLCode      string
+	ID          int64   `json:"id"`
+	POID        string  `json:"po_id"`
+	AssetID     string  `json:"asset_id"`
+	Description string  `json:"description"`
+	Model       string  `json:"model"`
+	MAC         string  `json:"mac"`
+	Serial      string  `json:"serial"`
+	Quantity    int     `json:"quantity"`
+	UnitPrice   float64 `json:"unit_price"`
+	Total       float64 `json:"total"`
+	Department  string  `json:"department"`
+	GLCode      string  `json:"gl_code"`
 }
 
 func Init() error {
