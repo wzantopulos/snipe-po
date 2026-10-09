@@ -300,7 +300,7 @@ func sendToAP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.AddHistory(po.ID, "sent_to_ap", "PO sent to Accounts Payable")
-	jsonResponse(w, po, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // POST /api/pos/:id/mark-paid - Mark as paid
@@ -326,7 +326,7 @@ func markPaid(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.AddHistory(po.ID, "paid", "PO marked as paid")
-	jsonResponse(w, po, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // GET /api/pos/:id/pdf - Download PDF
