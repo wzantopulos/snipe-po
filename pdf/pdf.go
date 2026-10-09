@@ -126,35 +126,40 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 
 	pdf.Ln(5)
 
-	totalsX := 140.0
+	// Totals section - right aligned
+	pdf.SetX(120)
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(totalsX-140, 6, "")
+	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Subtotal:")
+	pdf.Cell(40, 6, "Subtotal:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.Subtotal))
+	pdf.Cell(30, 6, fmt.Sprintf("$%.2f", po.Subtotal))
 	pdf.Ln(6)
 
-	pdf.Cell(totalsX-140, 6, "")
+	pdf.SetX(120)
+	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Shipping:")
+	pdf.Cell(40, 6, "Shipping:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.ShippingCost))
+	pdf.Cell(30, 6, fmt.Sprintf("$%.2f", po.ShippingCost))
 	pdf.Ln(6)
 
-	pdf.Cell(totalsX-140, 6, "")
+	pdf.SetX(120)
+	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(35, 6, "Tax:")
+	pdf.Cell(40, 6, "Tax:")
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(25, 6, fmt.Sprintf("$%.2f", po.TaxCost))
+	pdf.Cell(30, 6, fmt.Sprintf("$%.2f", po.TaxCost))
 	pdf.Ln(6)
 
+	pdf.SetX(120)
 	pdf.SetFont("Arial", "B", 11)
 	pdf.SetFillColor(240, 240, 240)
-	pdf.Cell(totalsX-140, 8, "")
-	pdf.Cell(35, 8, "Grand Total:")
-	pdf.Cell(25, 8, fmt.Sprintf("$%.2f", po.GrandTotal))
+	pdf.Cell(40, 8, "Grand Total:")
+	pdf.SetFont("Arial", "B", 11)
+	pdf.Cell(30, 8, fmt.Sprintf("$%.2f", po.GrandTotal))
 	pdf.Ln(8)
+	pdf.SetFillColor(255, 255, 255)
 
 	pdf.Ln(10)
 
