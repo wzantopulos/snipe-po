@@ -165,7 +165,8 @@ func createPO(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	pdfPath, err := pdf.GeneratePDF(po, nil)
+	items, _ := db.GetLineItems(po.ID)
+	pdfPath, err := pdf.GeneratePDF(po, items)
 	if err == nil && pdfPath != "" {
 		po.PDFPath = pdfPath
 		db.UpdatePO(po)
