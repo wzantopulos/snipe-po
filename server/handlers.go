@@ -360,6 +360,49 @@ func sendToAP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	db.AddHistory(po.ID, "sent_to_ap", "PO sent to Accounts Payable")
+
+	// Send email to AP
+	go func() {
+		cfg := config.Get()
+		appURL := cfg.SnipeIT.AppURL
+		if appURL == "" {
+			appURL = "http://localhost:8080"
+		}
+		subject := fmt.Sprintf("Purchase Order %s Sent to AP", po.PONumber)
+		textBody := fmt.Sprintf("Purchase order has been sent to Accounts Payable for payment processing.\n\nPO Number: %s\nSupplier: %s\nTotal: $%.2f\n\nView at: %s/view?id=%s",
+			po.PONumber, po.Supplier, po.GrandTotal, appURL, po.ID)
+		htmlBody := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head><style>
+body{font-family:Arial,sans-serif;margin:20px;color:#333}
+.header{background:#16a34a;color:white;padding:20px;border-radius:8px 8px 0 0}
+.content{background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none}
+.info{margin:15px 0}
+.label{font-weight:bold;color:#64748b}
+.total{font-size:1.5em;color:#16a34a;font-weight:bold;margin:15px 0}
+.footer{font-size:12px;color:#64748b;margin-top:20px}
+</style></head>
+<body>
+<div class="header">
+<h2>Purchase Order Sent to Accounts Payable</h2>
+</div>
+<div class="content">
+<div class="info"><span class="label">PO Number:</span> %s</div>
+<div class="info"><span class="label">Supplier:</span> %s</div>
+<div class="info"><span class="label">Date:</span> %s</div>
+<div class="info"><span class="label">Department:</span> %s</div>
+<div class="info"><span class="label">Terms:</span> %s</div>
+<div class="total">Total: $%.2f</div>
+<div class="footer">
+View and process this PO at: <a href="%s/view?id=%s">%s/view?id=%s</a>
+</div>
+</div>
+</body>
+</html>`,
+			po.PONumber, po.Supplier, po.Date, po.Department, po.Terms, po.GrandTotal, appURL, po.ID, appURL, po.ID)
+		email.SendEmailHTML([]string{po.APEmail}, subject, htmlBody, textBody, po.PDFPath)
+	}()
+
 	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
