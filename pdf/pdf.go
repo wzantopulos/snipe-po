@@ -128,8 +128,6 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 
 	// Totals section - right aligned
 	pdf.SetX(120)
-	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(40, 6, "Subtotal:")
 	pdf.SetFont("Arial", "", 10)
@@ -137,7 +135,6 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.Ln(6)
 
 	pdf.SetX(120)
-	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(40, 6, "Shipping:")
 	pdf.SetFont("Arial", "", 10)
@@ -145,7 +142,6 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.Ln(6)
 
 	pdf.SetX(120)
-	pdf.Cell(35, 6, "")
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(40, 6, "Tax:")
 	pdf.SetFont("Arial", "", 10)
