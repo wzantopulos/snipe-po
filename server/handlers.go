@@ -200,12 +200,51 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 
 	db.AddHistory(po.ID, "sent", "PO sent for approval")
 
-	// Send approval email
+	// Send approval email with HTML and Approve/Reject buttons
 	go func() {
+		appURL := "http://cchhelpdesk.ddns.net:8080"
 		subject := fmt.Sprintf("Purchase Order %s Requires Approval", po.PONumber)
-		body := fmt.Sprintf("A new purchase order requires your approval.\n\nPO Number: %s\nSupplier: %s\nTotal: $%.2f\n\nPlease review and approve or reject at your earliest convenience.",
-				po.PONumber, po.Supplier, po.GrandTotal)
-		if err := email.SendEmail([]string{po.ApproverEmail}, subject, body, po.PDFPath); err != nil {
+		textBody := fmt.Sprintf("A new purchase order requires your approval.\n\nPO Number: %s\nSupplier: %s\nTotal: $%.2f\n\nPlease review and approve or reject at %s/view?id=%s",
+			po.PONumber, po.Supplier, po.GrandTotal, appURL, po.ID)
+		htmlBody := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head><style>
+body{font-family:Arial,sans-serif;margin:20px;color:#333}
+.header{background:#2563eb;color:white;padding:20px;border-radius:8px 8px 0 0}
+.content{background:#f8fafc;padding:20px;border:1px solid #e2e8f0;border-top:none}
+.info{margin:15px 0}
+.label{font-weight:bold;color:#64748b}
+.total{font-size:1.5em;color:#2563eb;font-weight:bold;margin:15px 0}
+.buttons{margin:25px 0;text-align:center}
+.btn{display:inline-block;padding:12px 30px;margin:0 10px;border-radius:6px;text-decoration:none;font-weight:bold}
+.btn-approve{background:#16a34a;color:white}
+.btn-reject{background:#dc2626;color:white}
+.footer{font-size:12px;color:#64748b;margin-top:20px}
+</style></head>
+<body>
+<div class="header">
+<h2>Purchase Order Requires Approval</h2>
+</div>
+<div class="content">
+<div class="info"><span class="label">PO Number:</span> %s</div>
+<div class="info"><span class="label">Supplier:</span> %s</div>
+<div class="info"><span class="label">Date:</span> %s</div>
+<div class="info"><span class="label">Department:</span> %s</div>
+<div class="info"><span class="label">Terms:</span> %s</div>
+<div class="total">Total: $%.2f</div>
+<div class="buttons">
+<a href="%s/api/pos/%s/approve" class="btn btn-approve">✓ Approve</a>
+<a href="%s/view?id=%s" class="btn btn-reject">✗ Reject</a>
+</div>
+<div class="footer">
+You can also view and manage this PO in the web interface.
+</div>
+</div>
+</body>
+</html>`,
+				po.PONumber, po.Supplier, po.Date, po.Department, po.Terms, po.GrandTotal,
+				appURL, po.ID, appURL, po.ID, appURL, po.ID)
+		if err := email.SendEmailHTML([]string{po.ApproverEmail}, subject, htmlBody, textBody, po.PDFPath); err != nil {
 			fmt.Printf("Failed to send approval email: %v\n", err)
 		} else {
 			fmt.Printf("Approval email sent to %s\n", po.ApproverEmail)

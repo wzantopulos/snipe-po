@@ -12,6 +12,10 @@ import (
 )
 
 func SendEmail(to []string, subject, body, attachmentPath string) error {
+	return SendEmailHTML(to, subject, body, "", attachmentPath)
+}
+
+func SendEmailHTML(to []string, subject, htmlBody, textBody, attachmentPath string) error {
 	cfg := config.Get()
 	if cfg == nil {
 		return fmt.Errorf("config not loaded")
@@ -28,7 +32,7 @@ func SendEmail(to []string, subject, body, attachmentPath string) error {
 		auth = smtp.PlainAuth("", cfg.SMTP.Username, cfg.SMTP.Password, host)
 	}
 
-	msg := buildMessage(from, to, subject, body, attachmentPath)
+	msg := buildHTMLMessage(from, to, subject, htmlBody, textBody, attachmentPath)
 
 	// Port 465 uses implicit TLS (direct TLS connection)
 	// Port 587 uses explicit TLS (STARTTLS after connection)
@@ -182,6 +186,52 @@ func buildMessage(from string, to []string, subject, body, attachmentPath string
 		}
 	}
 
+	return sb.String()
+}
+
+func buildHTMLMessage(from string, to []string, subject, htmlBody, textBody, attachmentPath string) string {
+	var sb strings.Builder
+	mimeBoundary := "boundary"
+
+	sb.WriteString(fmt.Sprintf("From: %s\r\n", from))
+	sb.WriteString(fmt.Sprintf("To: %s\r\n", strings.Join(to, ", ")))
+	sb.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+	sb.WriteString("MIME-Version: 1.0\r\n")
+	sb.WriteString(fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"\r\n", mimeBoundary))
+
+	// Plain text part
+	sb.WriteString("\r\n--" + mimeBoundary + "\r\n")
+	sb.WriteString("Content-Type: text/plain; charset=\"utf-8\"\r\n")
+	sb.WriteString("\r\n")
+	if textBody != "" {
+		sb.WriteString(textBody)
+	} else {
+		sb.WriteString(htmlBody) // fallback
+	}
+	sb.WriteString("\r\n")
+
+	// HTML part
+	sb.WriteString("\r\n--" + mimeBoundary + "\r\n")
+	sb.WriteString("Content-Type: text/html; charset=\"utf-8\"\r\n")
+	sb.WriteString("\r\n")
+	sb.WriteString(htmlBody)
+	sb.WriteString("\r\n")
+
+	// Attachment part
+	if attachmentPath != "" {
+		sb.WriteString("\r\n--" + mimeBoundary + "\r\n")
+		filename := getFilename(attachmentPath)
+		pdfData, err := os.ReadFile(attachmentPath)
+		if err == nil {
+			sb.WriteString(fmt.Sprintf("Content-Type: application/pdf; name=\"%s\"\r\n", filename))
+			sb.WriteString("Content-Transfer-Encoding: base64\r\n")
+			sb.WriteString(fmt.Sprintf("Content-Disposition: attachment; filename=\"%s\"\r\n\r\n", filename))
+			sb.WriteString(encodeBase64(pdfData))
+			sb.WriteString("\r\n")
+		}
+	}
+
+	sb.WriteString("--" + mimeBoundary + "--\r\n")
 	return sb.String()
 }
 
