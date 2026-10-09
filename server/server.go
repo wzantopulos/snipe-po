@@ -41,11 +41,6 @@ func Start(port int) error {
 		deletePO(w, r)
 	}).Methods("POST")
 
-	r.HandleFunc("/api/pos/{id}/approve", func(w http.ResponseWriter, r *http.Request) {
-		approvePO(w, r)
-		redirectToView(w, r, mux.Vars(r)["id"])
-	}).Methods("POST")
-
 	r.HandleFunc("/api/pos/{id}/reject", func(w http.ResponseWriter, r *http.Request) {
 		rejectPO(w, r)
 		redirectToView(w, r, mux.Vars(r)["id"])
