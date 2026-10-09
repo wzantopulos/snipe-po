@@ -192,7 +192,7 @@ func GetAllPOs(status string) ([]PurchaseOrder, error) {
 		var po PurchaseOrder
 		var approvedAt sql.NullTime
 
-		err := rows.Scan(&po.ID, &po.PONumber, &po.CreatedAt, &po.UpdatedAt, &po.Status, &po.Date, &po.Supplier, &po.SupplierContact, &po.Terms, &po.PaymentType, &po.Department, &po.GLCode, &po.Subtotal, &po.ShippingCost, &po.TaxCost, &po.GrandTotal, &po.ApproverEmail, &po.APEmail, &po.ApprovalNote, &approvedAt, &po.PDFPath)
+		err := rows.Scan(&po.ID, &po.PONumber, &po.CreatedAt, &po.UpdatedAt, &po.Status, &po.Date, &po.Supplier, &po.SupplierContact, &po.Terms, &po.PaymentType, &po.Department, &po.GLCode, &po.Subtotal, &po.ShippingCost, &po.TaxCost, &po.GrandTotal, &po.ApproverEmail, &po.APEmail, &po.ApprovalNote, &approvedAt, &po.PDFPath, &po.PackingSlipPath)
 		if err != nil {
 			return nil, err
 		}
