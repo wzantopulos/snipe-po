@@ -23,6 +23,7 @@ func Start(port int) error {
 	api.HandleFunc("/pos/{id}/send-to-ap", sendToAP).Methods("POST")
 	api.HandleFunc("/pos/{id}/mark-paid", uploadPackingSlip).Methods("POST")
 	api.HandleFunc("/pos/{id}/pdf", getPDF).Methods("GET")
+	api.HandleFunc("/pos/{id}/packing-slip", getPackingSlip).Methods("GET")
 	api.HandleFunc("/suppliers", listSuppliers).Methods("GET")
 
 	// Web UI routes

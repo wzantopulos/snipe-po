@@ -469,6 +469,44 @@ func getPDF(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, f)
 }
 
+// GET /api/pos/:id/packing-slip - Download Packing Slip
+func getPackingSlip(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	po, err := db.GetPO(vars["id"])
+	if err != nil {
+		errorResponse(w, "PO not found", http.StatusNotFound)
+		return
+	}
+
+	if po.PackingSlipPath == "" {
+		errorResponse(w, "No packing slip uploaded for this PO", http.StatusNotFound)
+		return
+	}
+
+	// Open the file
+	f, err := os.Open(po.PackingSlipPath)
+	if err != nil {
+		errorResponse(w, "Packing slip file not found on disk", http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+
+	// Get file info
+	fi, err := f.Stat()
+	if err != nil {
+		errorResponse(w, "Cannot read packing slip file", http.StatusNotFound)
+		return
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(po.PackingSlipPath)))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+
+	// Copy file to response
+	io.Copy(w, f)
+}
+
 // GET /api/suppliers - Fetch suppliers from Snipe-IT
 func listSuppliers(w http.ResponseWriter, r *http.Request) {
 	cfg := config.Get()

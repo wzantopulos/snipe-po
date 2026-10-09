@@ -134,6 +134,9 @@ func initDB() error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Migration: add packing_slip_path column if it doesn't exist (ignore errors)
+	_, _ = db.Exec(`ALTER TABLE purchase_orders ADD COLUMN packing_slip_path TEXT DEFAULT ''`)
+
 	return nil
 }
 
