@@ -18,6 +18,24 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 		return "", fmt.Errorf("config not loaded")
 	}
 
+	approverName := ""
+	if po.ApproverEmail != "" {
+		// Extract name from email (e.g., john.smith@company.com -> John Smith)
+		parts := strings.Split(po.ApproverEmail, "@")
+		if len(parts) > 0 {
+			name := strings.ReplaceAll(parts[0], ".", " ")
+			name = strings.ReplaceAll(name, "_", " ")
+			// Title case each word
+			words := strings.Fields(name)
+			for i, word := range words {
+				if len(word) > 0 {
+					words[i] = strings.ToUpper(string(word[0])) + strings.ToLower(word[1:])
+				}
+			}
+			approverName = strings.Join(words, " ")
+		}
+	}
+
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
@@ -156,8 +174,8 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.SetFont("Arial", "", 8)
 	pdf.Cell(95, 4, "Signature: ________________________")
 	pdf.Ln(5)
-	if po.ApproverEmail != "" {
-		pdf.Cell(95, 4, "Approved by: "+po.ApproverEmail)
+	if approverName != "" {
+		pdf.Cell(95, 4, "Approved by: "+approverName)
 	} else {
 		pdf.Cell(95, 4, "Approved by: ")
 	}
