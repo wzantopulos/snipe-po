@@ -472,7 +472,7 @@ func uploadPackingSlip(w http.ResponseWriter, r *http.Request) {
 
 	db.AddHistory(po.ID, "packing_slip", "Packing slip uploaded")
 
-	jsonResponse(w, map[string]string{"packing_slip_path": packingSlipPath}, http.StatusOK)
+	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
 // GET /api/pos/:id/pdf - Download PDF
