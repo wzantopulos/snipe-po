@@ -832,9 +832,19 @@ var viewTemplate = `<!DOCTYPE html>
                         {{end}}
 
                         {{if eq .PO.Status "sent_to_ap"}}
-                        <form method="post" action="/api/pos/{{.PO.ID}}/mark-paid">
-                            <button type="submit" class="btn btn-info w-100">&#128176; Mark as Paid</button>
-                        </form>
+                        <div class="mb-2">
+                            <form method="post" action="/api/pos/{{.PO.ID}}/mark-paid" enctype="multipart/form-data">
+                                <label class="form-label small text-muted">Upload Packing Slip (PDF)</label>
+                                <div class="input-group">
+                                    <input type="file" name="packing_slip" accept=".pdf" class="form-control" required>
+                                    <button type="submit" class="btn btn-info">Upload</button>
+                                </div>
+                            </form>
+                        </div>
+                        {{end}}
+
+                        {{if .PO.PackingSlipPath}}
+                        <a href="/api/pos/{{.PO.ID}}/packing-slip" class="btn btn-outline-primary btn-sm w-100 mb-2">&#128196; Download Packing Slip</a>
                         {{end}}
 
                         {{if eq .PO.Status "draft"}}
