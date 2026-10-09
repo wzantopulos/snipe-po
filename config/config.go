@@ -10,6 +10,7 @@ import (
 )
 
 type Config struct {
+	AppURL  string         `yaml:"app_url"`
 	Company  CompanyConfig  `yaml:"company"`
 	SnipeIT  SnipeITConfig  `yaml:"snipe_it"`
 	SMTP     SMTPConfig     `yaml:"smtp"`

@@ -1,3 +1,6 @@
+# The public URL where this app is accessible (used for email links)
+app_url: "http://10.1.1.115:8008"
+
 company:
   name: "Your Company Name"
   address: "123 Main St"

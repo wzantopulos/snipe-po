@@ -202,7 +202,11 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 
 	// Send approval email with HTML and Approve/Reject buttons
 	go func() {
-		appURL := "http://cchhelpdesk.ddns.net:8080"
+		cfg := config.Get()
+		appURL := cfg.AppURL
+		if appURL == "" {
+			appURL = "http://localhost:8080"
+		}
 		subject := fmt.Sprintf("Purchase Order %s Requires Approval", po.PONumber)
 		textBody := fmt.Sprintf("A new purchase order requires your approval.\n\nPO Number: %s\nSupplier: %s\nTotal: $%.2f\n\nPlease review and approve or reject at %s/view?id=%s",
 			po.PONumber, po.Supplier, po.GrandTotal, appURL, po.ID)
