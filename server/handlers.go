@@ -343,7 +343,28 @@ func getPDF(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.ServeFile(w, r, po.PDFPath)
+	// Open the file
+	f, err := os.Open(po.PDFPath)
+	if err != nil {
+		errorResponse(w, "PDF file not found on disk", http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+
+	// Get file info
+	fi, err := f.Stat()
+	if err != nil {
+		errorResponse(w, "Cannot read PDF file", http.StatusNotFound)
+		return
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", "application/pdf")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(po.PDFPath)))
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", fi.Size()))
+
+	// Copy file to response
+	io.Copy(w, f)
 }
 
 // GET /api/suppliers - Fetch suppliers from Snipe-IT
