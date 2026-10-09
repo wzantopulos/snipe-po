@@ -28,6 +28,7 @@ type CompanyConfig struct {
 type SnipeITConfig struct {
 	URL    string `yaml:"url"`
 	APIKey string `yaml:"api_key"`
+	AppURL string `yaml:"app_url"`
 }
 
 type SMTPConfig struct {

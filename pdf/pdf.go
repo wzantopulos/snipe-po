@@ -163,17 +163,13 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.SetFont("Arial", "I", 8)
 	pdf.Cell(0, 10, fmt.Sprintf("Generated on %s", time.Now().Format("01/02/2006 at 3:04 PM")))
 
-	exePath, err := os.Executable()
-	pdfDir := "pdfs"
-	if err == nil {
-		pdfDir = filepath.Join(filepath.Dir(exePath), "pdfs")
-	}
+	pdfDir := "/data/pdfs"
 	os.MkdirAll(pdfDir, 0755)
 
 	safePONumber := strings.ReplaceAll(po.PONumber, "/", "-")
 	pdfPath := filepath.Join(pdfDir, fmt.Sprintf("%s.pdf", safePONumber))
 
-	err = pdf.OutputFileAndClose(pdfPath)
+	err := pdf.OutputFileAndClose(pdfPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to save PDF: %w", err)
 	}

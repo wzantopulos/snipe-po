@@ -203,7 +203,7 @@ func sendPO(w http.ResponseWriter, r *http.Request) {
 	// Send approval email with HTML and Approve/Reject buttons
 	go func() {
 		cfg := config.Get()
-		appURL := cfg.AppURL
+		appURL := cfg.SnipeIT.AppURL
 		if appURL == "" {
 			appURL = "http://localhost:8080"
 		}
