@@ -48,21 +48,30 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(80, 5, "FROM:")
-	pdf.Cell(110, 5, "TO:")
+	pdf.SetX(110)
+	pdf.Cell(90, 5, "TO:")
 	pdf.SetY(headerY)
 
 	pdf.SetFont("Arial", "", 9)
 	pdf.Cell(80, 4, cfg.Company.Name)
-	pdf.Cell(110, 4, po.Supplier)
+	pdf.SetX(110)
+	pdf.Cell(90, 4, po.Supplier)
 	pdf.Ln(4)
 	pdf.Cell(80, 4, cfg.Company.Address)
-	pdf.Cell(110, 4, po.SupplierContact)
+	pdf.SetX(110)
+	pdf.Cell(90, 4, po.SupplierContact)
 	pdf.Ln(4)
 	pdf.Cell(80, 4, cfg.Company.CityStateZip)
+	pdf.SetX(110)
+	pdf.Cell(90, 4, "")
 	pdf.Ln(4)
 	pdf.Cell(80, 4, cfg.Company.Phone)
+	pdf.SetX(110)
+	pdf.Cell(90, 4, "")
 	pdf.Ln(4)
 	pdf.Cell(80, 4, cfg.Company.Email)
+	pdf.SetX(110)
+	pdf.Cell(90, 4, "")
 	pdf.Ln(8)
 
 	pdf.SetFont("Arial", "B", 10)
@@ -169,19 +178,16 @@ func GeneratePDF(po *db.PurchaseOrder, items []db.LineItem) (string, error) {
 	pdf.Cell(75, 5, po.PaymentType)
 	pdf.Ln(15)
 
-	pdf.SetFont("Arial", "B", 10)
-	pdf.Cell(190, 6, "Approved By:")
-	pdf.Ln(8)
-	pdf.SetFont("Arial", "", 8)
-	pdf.Cell(95, 4, "Signature: ________________________")
-	pdf.Ln(5)
-	if approverName != "" {
+	// Only show approval section if PO has been approved
+	if po.ApprovedAt != nil && approverName != "" {
+		pdf.SetFont("Arial", "B", 10)
+		pdf.Cell(190, 6, "Approved By:")
+		pdf.Ln(8)
+		pdf.SetFont("Arial", "", 8)
+		pdf.Cell(95, 4, "Signature: ________________________")
+		pdf.Ln(5)
 		pdf.Cell(95, 4, "Approved by: "+approverName)
-	} else {
-		pdf.Cell(95, 4, "Approved by: ")
-	}
-	pdf.Ln(5)
-	if po.ApprovedAt != nil {
+		pdf.Ln(5)
 		pdf.Cell(95, 4, "Date: "+po.ApprovedAt.Format("01/02/2006"))
 	}
 
