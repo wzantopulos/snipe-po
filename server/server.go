@@ -21,7 +21,7 @@ func Start(port int) error {
 	api.HandleFunc("/pos/{id}/approve", approvePO).Methods("POST")
 	api.HandleFunc("/pos/{id}/reject", rejectPO).Methods("POST")
 	api.HandleFunc("/pos/{id}/send-to-ap", sendToAP).Methods("POST")
-	api.HandleFunc("/pos/{id}/mark-paid", markPaid).Methods("POST")
+	api.HandleFunc("/pos/{id}/mark-paid", uploadPackingSlip).Methods("POST")
 	api.HandleFunc("/pos/{id}/pdf", getPDF).Methods("GET")
 	api.HandleFunc("/suppliers", listSuppliers).Methods("GET")
 
@@ -56,8 +56,7 @@ func Start(port int) error {
 	}).Methods("POST")
 
 	r.HandleFunc("/api/pos/{id}/mark-paid", func(w http.ResponseWriter, r *http.Request) {
-		markPaid(w, r)
-		redirectToView(w, r, mux.Vars(r)["id"])
+		uploadPackingSlip(w, r)
 	}).Methods("POST")
 
 	addr := fmt.Sprintf(":%d", port)

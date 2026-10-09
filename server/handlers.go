@@ -247,7 +247,7 @@ You can also view and manage this PO in the web interface.
 </body>
 </html>`,
 				po.PONumber, po.Supplier, po.Date, po.Department, po.Terms, po.GrandTotal,
-				appURL, po.ID, appURL, po.ID, appURL, po.ID)
+				appURL, po.ID, appURL, po.ID)
 		if err := email.SendEmailHTML([]string{po.ApproverEmail}, subject, htmlBody, textBody, po.PDFPath); err != nil {
 			fmt.Printf("Failed to send approval email: %v\n", err)
 		} else {
@@ -362,8 +362,8 @@ func sendToAP(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
 }
 
-// POST /api/pos/:id/mark-paid - Mark as paid
-func markPaid(w http.ResponseWriter, r *http.Request) {
+// POST /api/pos/:id/mark-paid - Upload packing slip
+func uploadPackingSlip(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	po, err := db.GetPO(vars["id"])
 	if err != nil {
@@ -371,21 +371,64 @@ func markPaid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if po.Status != "sent_to_ap" {
-		errorResponse(w, "Only POs sent to AP can be marked as paid", http.StatusBadRequest)
+	if po.Status != "sent_to_ap" && po.Status != "approved" {
+		errorResponse(w, "Only approved POs can have a packing slip uploaded", http.StatusBadRequest)
 		return
 	}
 
-	po.Status = "paid"
-	po.UpdatedAt = time.Now()
+	// Parse multipart form
+	if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB max
+		errorResponse(w, "Failed to parse form data", http.StatusBadRequest)
+		return
+	}
 
+	file, handler, err := r.FormFile("packing_slip")
+	if err != nil {
+		errorResponse(w, "No file uploaded", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	if !strings.HasSuffix(strings.ToLower(handler.Filename), ".pdf") {
+		errorResponse(w, "Only PDF files are allowed", http.StatusBadRequest)
+		return
+	}
+
+	// Create packing slips directory
+	packingSlipDir := "packing_slips"
+	if exePath, err := os.Executable(); err == nil {
+		packingSlipDir = filepath.Join(filepath.Dir(exePath), "packing_slips")
+	}
+	os.MkdirAll(packingSlipDir, 0755)
+
+	// Save file
+	safePONumber := strings.ReplaceAll(po.PONumber, "/", "-")
+	packingSlipPath := filepath.Join(packingSlipDir, fmt.Sprintf("%s_packing_slip.pdf", safePONumber))
+
+	out, err := os.Create(packingSlipPath)
+	if err != nil {
+		errorResponse(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, file); err != nil {
+		errorResponse(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	// Update PO
+	po.PackingSlipPath = packingSlipPath
+	po.UpdatedAt = time.Now()
 	if err := db.UpdatePO(po); err != nil {
 		errorResponse(w, "Failed to update PO", http.StatusInternalServerError)
 		return
 	}
 
-	db.AddHistory(po.ID, "paid", "PO marked as paid")
-	http.Redirect(w, r, "/view?id="+po.ID, http.StatusSeeOther)
+	db.AddHistory(po.ID, "packing_slip", "Packing slip uploaded")
+
+	jsonResponse(w, map[string]string{"packing_slip_path": packingSlipPath}, http.StatusOK)
 }
 
 // GET /api/pos/:id/pdf - Download PDF

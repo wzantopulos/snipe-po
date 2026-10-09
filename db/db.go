@@ -36,6 +36,7 @@ type PurchaseOrder struct {
 	ApprovalNote    string    `json:"approval_note"`
 	ApprovedAt      *time.Time `json:"approved_at,omitempty"`
 	PDFPath         string    `json:"pdf_path"`
+	PackingSlipPath string    `json:"packing_slip_path"`
 }
 
 type LineItem struct {
@@ -93,7 +94,8 @@ func initDB() error {
 		ap_email TEXT DEFAULT '',
 		approval_note TEXT DEFAULT '',
 		approved_at DATETIME,
-		pdf_path TEXT DEFAULT ''
+		pdf_path TEXT DEFAULT '',
+		packing_slip_path TEXT DEFAULT ''
 	);
 
 	CREATE TABLE IF NOT EXISTS line_items (
@@ -141,9 +143,9 @@ func GetDB() *sql.DB {
 
 func CreatePO(po *PurchaseOrder) error {
 	_, err := db.Exec(`
-		INSERT INTO purchase_orders (id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, pdf_path)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		po.ID, po.PONumber, po.CreatedAt, po.UpdatedAt, po.Status, po.Date, po.Supplier, po.SupplierContact, po.Terms, po.PaymentType, po.Department, po.GLCode, po.Subtotal, po.ShippingCost, po.TaxCost, po.GrandTotal, po.ApproverEmail, po.APEmail, po.PDFPath)
+		INSERT INTO purchase_orders (id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, pdf_path, packing_slip_path)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		po.ID, po.PONumber, po.CreatedAt, po.UpdatedAt, po.Status, po.Date, po.Supplier, po.SupplierContact, po.Terms, po.PaymentType, po.Department, po.GLCode, po.Subtotal, po.ShippingCost, po.TaxCost, po.GrandTotal, po.ApproverEmail, po.APEmail, po.PDFPath, po.PackingSlipPath)
 	return err
 }
 
@@ -152,10 +154,10 @@ func GetPO(idOrNumber string) (*PurchaseOrder, error) {
 	var approvedAt sql.NullTime
 
 	err := db.QueryRow(`
-		SELECT id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, approval_note, approved_at, pdf_path
+		SELECT id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, approval_note, approved_at, pdf_path, packing_slip_path
 		FROM purchase_orders WHERE id = ? OR po_number = ?`,
 		idOrNumber, idOrNumber).Scan(
-		&po.ID, &po.PONumber, &po.CreatedAt, &po.UpdatedAt, &po.Status, &po.Date, &po.Supplier, &po.SupplierContact, &po.Terms, &po.PaymentType, &po.Department, &po.GLCode, &po.Subtotal, &po.ShippingCost, &po.TaxCost, &po.GrandTotal, &po.ApproverEmail, &po.APEmail, &po.ApprovalNote, &approvedAt, &po.PDFPath)
+		&po.ID, &po.PONumber, &po.CreatedAt, &po.UpdatedAt, &po.Status, &po.Date, &po.Supplier, &po.SupplierContact, &po.Terms, &po.PaymentType, &po.Department, &po.GLCode, &po.Subtotal, &po.ShippingCost, &po.TaxCost, &po.GrandTotal, &po.ApproverEmail, &po.APEmail, &po.ApprovalNote, &approvedAt, &po.PDFPath, &po.PackingSlipPath)
 
 	if err != nil {
 		return nil, err
@@ -167,7 +169,7 @@ func GetPO(idOrNumber string) (*PurchaseOrder, error) {
 }
 
 func GetAllPOs(status string) ([]PurchaseOrder, error) {
-	query := `SELECT id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, approval_note, approved_at, pdf_path FROM purchase_orders`
+	query := `SELECT id, po_number, created_at, updated_at, status, date, supplier, supplier_contact, terms, payment_type, department, gl_code, subtotal, shipping_cost, tax_cost, grand_total, approver_email, ap_email, approval_note, approved_at, pdf_path, packing_slip_path FROM purchase_orders`
 	var args []interface{}
 
 	if status != "" {
@@ -202,9 +204,9 @@ func GetAllPOs(status string) ([]PurchaseOrder, error) {
 func UpdatePO(po *PurchaseOrder) error {
 	_, err := db.Exec(`
 		UPDATE purchase_orders SET 
-			updated_at = ?, status = ?, date = ?, supplier = ?, supplier_contact = ?, terms = ?, payment_type = ?, department = ?, gl_code = ?, subtotal = ?, shipping_cost = ?, tax_cost = ?, grand_total = ?, approver_email = ?, ap_email = ?, approval_note = ?, approved_at = ?, pdf_path = ?
+			updated_at = ?, status = ?, date = ?, supplier = ?, supplier_contact = ?, terms = ?, payment_type = ?, department = ?, gl_code = ?, subtotal = ?, shipping_cost = ?, tax_cost = ?, grand_total = ?, approver_email = ?, ap_email = ?, approval_note = ?, approved_at = ?, pdf_path = ?, packing_slip_path = ?
 		WHERE id = ?`,
-		po.UpdatedAt, po.Status, po.Date, po.Supplier, po.SupplierContact, po.Terms, po.PaymentType, po.Department, po.GLCode, po.Subtotal, po.ShippingCost, po.TaxCost, po.GrandTotal, po.ApproverEmail, po.APEmail, po.ApprovalNote, po.ApprovedAt, po.PDFPath, po.ID)
+		po.UpdatedAt, po.Status, po.Date, po.Supplier, po.SupplierContact, po.Terms, po.PaymentType, po.Department, po.GLCode, po.Subtotal, po.ShippingCost, po.TaxCost, po.GrandTotal, po.ApproverEmail, po.APEmail, po.ApprovalNote, po.ApprovedAt, po.PDFPath, po.PackingSlipPath, po.ID)
 	return err
 }
 
